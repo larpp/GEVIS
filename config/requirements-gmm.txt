@@ -1,0 +1,2 @@
+# Direct GMM boundary fitting only; frozen JSON inference uses NumPy.
+scikit-learn==1.9.1

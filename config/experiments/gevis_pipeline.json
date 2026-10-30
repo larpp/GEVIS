@@ -1,0 +1,21 @@
+{
+  "training_profile": "center_relation_v14",
+  "backbone_revision": "training_source_v2",
+  "model_variant": "multiscale",
+  "center_decision_mode": "off",
+  "decision_system": "fusion_answers",
+  "control_alert_budget": 0.01,
+  "interval_mode": "learned",
+  "gate_profile": "position_rank_v4",
+  "operation_profile": "core",
+  "threshold_multiplier": 1.0,
+  "max_calibration_windows_per_step": 2048,
+  "active_quantile": 0.99,
+  "comparison_quantiles": [
+    0.9,
+    0.95,
+    0.99
+  ],
+  "comparison_split": "validation",
+  "meaning": "Primary: unchanged sensor-free questions plus current/reference tokens and UI-selected center -> frozen STEP1/STEP2 Fusion -> trained contextual answer logits. Run/Step select input traces, not question wording or labels. STEP3 fits TRAIN readout and selects trained weights on Validation; STEP4 scores actual Test answers and center-swap/off-center behavior. q99/GMM are explicit preserved comparators, never fallback answers. Synthetic paired truth is not equipment fault truth."
+}

@@ -1,0 +1,6 @@
+# Optional integrations. Install separately from the production runtime.
+# Additional generators/metrics only. Merlion uses scripts/setup_merlion.py
+# and requirements-merlion.txt to preserve the GEVIS NumPy 2 environment.
+timeeval-gutenTAG
+tsaug
+timeeval

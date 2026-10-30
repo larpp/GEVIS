@@ -1,0 +1,2 @@
+# Install the existing GEVIS environment first; this adds Parquet support.
+pyarrow==22.0.0

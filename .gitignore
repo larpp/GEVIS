@@ -1,0 +1,29 @@
+# Received installer source is kept beside the project, outside its history.
+/eidos-main/
+
+# Private local experiment settings and notebook outputs.
+/config/a_local.json
+/notebooks/*.local.ipynb
+/notebooks/gevis_label_free/*.ipynb
+/notebooks/_backups/
+/data/
+/artifacts/
+/backup/
+/preprocessing/
+*.pt
+*.pth
+.ipynb_checkpoints/
+__pycache__/
+*.py[cod]
+# Local caches, recovery material and environment assets are never release input.
+/.cache/*
+/frontend/node_modules/
+/frontend/dist/
+# Owner-approved metrics retained locally; external publication is separate.
+/_evidence/local/
+
+# Historical/local notebooks are not part of the public pipeline.
+/notebooks/RL_test*.ipynb
+
+# Historical/local notebooks are not part of the public pipeline.
+/notebooks/RL_test*.ipynb

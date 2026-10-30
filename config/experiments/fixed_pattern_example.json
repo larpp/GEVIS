@@ -1,0 +1,21 @@
+{
+  "schema": "gevis.fixed_pattern_test.v1",
+  "origin": "illustrative",
+  "training_exposure": "not_audited",
+  "seed": 20261022,
+  "patterns": [
+    {"id": "late_level_shift", "components": [
+      {"kind": "level_shift", "sensor": 0, "start": 0.75, "end": 1.0, "strength": 1.0, "direction": 1}
+    ]},
+    {"id": "negative_drift", "components": [
+      {"kind": "drift", "sensor": 0, "start": 0.25, "end": 0.75, "strength": 2.0, "direction": -1}
+    ]},
+    {"id": "native_delay", "components": [
+      {"kind": "delay", "sensor": 0, "start": 0.0, "end": 1.0, "strength": 2, "direction": 1}
+    ]},
+    {"id": "level_plus_drift", "components": [
+      {"kind": "level_shift", "sensor": 0, "start": 0.25, "end": 0.75, "strength": 1.0, "direction": 1},
+      {"kind": "drift", "sensor": 0, "start": 0.25, "end": 0.75, "strength": 2.0, "direction": 1}
+    ]}
+  ]
+}

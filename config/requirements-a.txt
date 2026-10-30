@@ -1,0 +1,8 @@
+# Step A/B local experiment environment.
+# Install torch first from the official CUDA 13.0 index:
+# python -m pip install torch==2.10.0 --index-url https://download.pytorch.org/whl/cu130
+# Then install this file with the same Python environment.
+torch==2.10.0+cu130
+pandas==2.3.3
+numpy==2.5.3
+transformers==4.57.6

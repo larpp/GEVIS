@@ -1,0 +1,2 @@
+# Preserve the received CSV bytes and kit manifest hashes across checkouts.
+* -text

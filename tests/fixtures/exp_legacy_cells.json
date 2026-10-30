@@ -1,0 +1,726 @@
+{
+ "purpose": "Retired EXP source for synthetic legacy core regressions only; never loaded by active notebooks.",
+ "notebooks": {
+  "01_question_understanding.ipynb": {
+   "cells": [
+    {
+     "id": "title",
+     "cell_type": "markdown",
+     "source": [
+      "# EXP1 - Unified GEVIS question/evidence probes\n",
+      "Same input and selected sensor; the same hybrid evidence is queried by explicitly mapped operations. This is NOT proof of learned question semantics. No independent truth means no accuracy/F1.\n"
+     ]
+    },
+    {
+     "id": "pipeline-execution-guide",
+     "cell_type": "markdown",
+     "source": [
+      "## Shared current GEVIS checkpoint\n",
+      "\n",
+      "Reuse matching STEP1/2 weights. STEP3 trains and validates the existing answer heads, then saves full GEVIS. Restart this EXP kernel and Run All; no GEVIS training, backup search or numerical fallback occurs here.\n",
+      "\n",
+      "Learned answers, numerical discovery and held-out suffix forecasting are distinct evaluations. Checkpoint option text/order is used exactly. Original unlabelled predictions have no accuracy/F1 without independent truth.\n"
+     ]
+    },
+    {
+     "id": "evidence-v3-guide",
+     "cell_type": "markdown",
+     "source": [
+      "## Scope and history\n",
+      "\n",
+      "Retired bundles are under `backup/artifacts/` and are not loaded automatically. Model softmax is not a calibrated fault probability. Historical discovery results do not measure the trained answer decoder.\n"
+     ]
+    },
+    {
+     "id": "shared-pipeline-settings",
+     "cell_type": "code",
+     "source": [
+      "# Shared settings: edit config/experiments/gevis_pipeline.json, then restart kernels.\n",
+      "from pathlib import Path\n",
+      "import sys, os\n",
+      "PIPELINE_ROOT=next(p for p in (Path.cwd().resolve(),*Path.cwd().resolve().parents) if (p/'src'/'pecvd').is_dir())\n",
+      "if str(PIPELINE_ROOT/'src') not in sys.path: sys.path.insert(0,str(PIPELINE_ROOT/'src'))\n",
+      "import importlib\n",
+      "for _name in (\"pecvd.model_variants\", \"pecvd.experiments.questions\", \"pecvd.experiments.pipeline_settings\"):\n",
+      "    importlib.reload(importlib.import_module(_name))\n",
+      "from pecvd.experiments.pipeline_settings import configure_pipeline\n",
+      "PIPELINE_SETTINGS=configure_pipeline(PIPELINE_ROOT)\n",
+      "print(PIPELINE_SETTINGS)\n",
+      "\n",
+      "# Stage 1: UI supplies Step/range/sensors; fixed questions never supply target labels.\n",
+      "from pecvd.experiments.questions import PRIMARY_GOAL_VERSION, DISCOVERY_QUESTIONS, SENSOR_QUESTION\n",
+      "from pecvd.answer_display import QUESTIONS as DISPLAY_QUESTIONS\n",
+      "print({\"question_contract\":PRIMARY_GOAL_VERSION,\"questions\":DISPLAY_QUESTIONS,\n",
+      "       \"training_profile\":PIPELINE_SETTINGS[\"training_profile\"],\"probabilities\":\"relative scores, not fault probabilities\"})\n",
+      "\n",
+      "# Center selection is numeric context; retain all sensors for relationship evidence.\n",
+      "print({\"center_mode\":\"selected sensor with all context retained\",\"weights\":\"same frozen STEP1/2 and hybrid GEVIS policy\",\"GEVIS_training_in_EXP\":False})\n",
+      "\n",
+      "EVALUATION_MODE=\"center\" if PIPELINE_SETTINGS[\"training_profile\"]==\"center_relation_v14\" else \"blind\"\n",
+      "print({\"primary_evaluation\":EVALUATION_MODE,\"answer_path\":\"unified_hybrid_evidence\",\"numerical_discovery\":\"same primary decision system\"})\n",
+      "\n",
+      "from pecvd.experiments.gevis_system import SYSTEM as GEVIS_SYSTEM\n",
+      "print({'gevis_system':GEVIS_SYSTEM,'decision_path':'hybrid','control_alert_budget':PIPELINE_SETTINGS['control_alert_budget'],'interval_mode':PIPELINE_SETTINGS.get('interval_mode','numeric')})\n"
+     ]
+    },
+    {
+     "id": "threshold-applicability",
+     "cell_type": "markdown",
+     "source": [
+      "EXP 1 measures localization/question grounding, not thresholded detection. Use EXP 2/3 for paired 95/99 detection comparison."
+     ]
+    },
+    {
+     "id": "setup",
+     "cell_type": "code",
+     "source": [
+      "from pathlib import Path\n",
+      "import sys\n",
+      "ROOT=next((p for p in (Path.cwd().resolve(),*Path.cwd().resolve().parents) if (p/'src'/'pecvd').is_dir()),None)\n",
+      "if ROOT is None: raise RuntimeError('Run this notebook inside the PECVD project')\n",
+      "sys.path.insert(0,str(ROOT/'src'))\n",
+      "import pandas as pd\n",
+      "import importlib\n",
+      "import pecvd.experiments.evaluation as _evaluation_module\n",
+      "import pecvd.experiments.reporting as _reporting_module\n",
+      "import pecvd.experiments.routing_audit as _routing_module\n",
+      "_routing_module=importlib.reload(_routing_module)\n",
+      "_routing_module.refresh_evaluation_modules()\n",
+      "for _module in (_evaluation_module,_reporting_module): importlib.reload(_module)\n",
+      "show_report=_reporting_module.show_report\n",
+      "pd.set_option('display.max_columns',24)\n",
+      "pd.set_option('display.max_colwidth',100)\n",
+      "SEED=42\n",
+      "BATCH_SIZE=32\n",
+      "SELECTED_STEPS=None  # None evaluates every trained Step; use a list for a bounded subset.\n",
+      "TEST_PAIRS_PER_STEP=2\n",
+      "QUESTION_LIMIT=120  # Supported questions per pair, plus unsupported-question probes.\n"
+     ]
+    },
+    {
+     "id": "runtime-guide",
+     "cell_type": "markdown",
+     "source": [
+      "## 실제 모델 평가\n",
+      "\n",
+      "진행률이 출력됩니다. 공정 수·구간 수·질문 수에 따라 시간이 걸립니다.\n"
+     ]
+    },
+    {
+     "id": "runtime-check",
+     "cell_type": "code",
+     "source": [
+      "from pecvd.experiments.gevis_system import run_gevis_predictions\n",
+      "QUESTION_VARIANTS=[\n",
+      "    ('any_change','BOOLEAN','Is there a change in this interval?'),\n",
+      "    ('mean_change','BOOLEAN','Has the mean level changed in this interval?'),\n",
+      "    ('variability_increase','BOOLEAN','Has variability increased in this interval?'),\n",
+      "    ('spike','BOOLEAN','Has a momentary spike occurred in this interval?'),\n",
+      "]\n",
+      "REPORT=run_gevis_predictions(ROOT,steps=SELECTED_STEPS,pairs_per_step=TEST_PAIRS_PER_STEP,\n",
+      "    seed=SEED,question_variants=QUESTION_VARIANTS)\n",
+      "QUESTION_CONTRAST=REPORT.details\n",
+      "display(QUESTION_CONTRAST[['step','pair_index','center_sensor','question_id','question',\n",
+      "                         'answer','probabilities','question_scope','score_source']])\n",
+      "print('Same window/reference/center across questions. Operations are explicitly mapped to the same hybrid evidence; this is not learned paraphrase accuracy.')\n"
+     ]
+    },
+    {
+     "id": "summary-guide",
+     "cell_type": "markdown",
+     "source": [
+      "## 최종 결과\n",
+      "\n",
+      "모델 실행 상태, 공정별 결과, 오류 사례와 종합 성능표를 확인합니다. 값이 비어 있으면 해당 사례/분모가 없는 항목입니다.\n"
+     ]
+    },
+    {
+     "id": "final-summary",
+     "cell_type": "code",
+     "source": [
+      "import pecvd.experiments.gevis_system as _summary_module\n",
+      "importlib.reload(_summary_module)\n",
+      "DETECTION_SUMMARY=REPORT.summary\n",
+      "SUMMARY=_summary_module.evaluation_summary(REPORT,process='PECVD')\n",
+      "REPORT.diagnostics['evaluation_summary']=SUMMARY\n",
+      "BY_STEP=REPORT.by_step\n",
+      "DETAILS=REPORT.details\n",
+      "ERROR_CASES=REPORT.errors\n",
+      "DIAGNOSTICS=REPORT.diagnostics\n",
+      "show_report(REPORT,display)\n"
+     ]
+    }
+   ]
+  },
+  "02_anomaly_injection.ipynb": {
+   "cells": [
+    {
+     "id": "title",
+     "cell_type": "markdown",
+     "source": [
+      "# EXP2 - Unified GEVIS controlled changes\n",
+      "Same hybrid decision as STEP4/EXP4. Effective synthetic changes and untouched unlabelled controls are reported separately. Compare numeric and learned intervals without changing alerts.\n"
+     ]
+    },
+    {
+     "id": "pipeline-execution-guide",
+     "cell_type": "markdown",
+     "source": [
+      "## Shared current GEVIS checkpoint\n",
+      "\n",
+      "Reuse matching STEP1/2 weights. STEP3 trains and validates the existing answer heads, then saves full GEVIS. Restart this EXP kernel and Run All; no GEVIS training, backup search or numerical fallback occurs here.\n",
+      "\n",
+      "Learned answers, numerical discovery and held-out suffix forecasting are distinct evaluations. Checkpoint option text/order is used exactly. Original unlabelled predictions have no accuracy/F1 without independent truth.\n"
+     ]
+    },
+    {
+     "id": "evidence-v3-guide",
+     "cell_type": "markdown",
+     "source": [
+      "## Scope and history\n",
+      "\n",
+      "Retired bundles are under `backup/artifacts/` and are not loaded automatically. Model softmax is not a calibrated fault probability. Historical discovery results do not measure the trained answer decoder.\n"
+     ]
+    },
+    {
+     "id": "shared-pipeline-settings",
+     "cell_type": "code",
+     "source": [
+      "# Shared settings: edit config/experiments/gevis_pipeline.json, then restart kernels.\n",
+      "from pathlib import Path\n",
+      "import sys, os\n",
+      "PIPELINE_ROOT=next(p for p in (Path.cwd().resolve(),*Path.cwd().resolve().parents) if (p/'src'/'pecvd').is_dir())\n",
+      "if str(PIPELINE_ROOT/'src') not in sys.path: sys.path.insert(0,str(PIPELINE_ROOT/'src'))\n",
+      "import importlib\n",
+      "for _name in (\"pecvd.model_variants\", \"pecvd.experiments.questions\", \"pecvd.experiments.pipeline_settings\"):\n",
+      "    importlib.reload(importlib.import_module(_name))\n",
+      "from pecvd.experiments.pipeline_settings import configure_pipeline\n",
+      "PIPELINE_SETTINGS=configure_pipeline(PIPELINE_ROOT)\n",
+      "print(PIPELINE_SETTINGS)\n",
+      "\n",
+      "# Stage 1: UI supplies Step/range/sensors; fixed questions never supply target labels.\n",
+      "from pecvd.experiments.questions import PRIMARY_GOAL_VERSION, DISCOVERY_QUESTIONS, SENSOR_QUESTION\n",
+      "from pecvd.answer_display import QUESTIONS as DISPLAY_QUESTIONS\n",
+      "print({\"question_contract\":PRIMARY_GOAL_VERSION,\"questions\":DISPLAY_QUESTIONS,\n",
+      "       \"training_profile\":PIPELINE_SETTINGS[\"training_profile\"],\"probabilities\":\"relative scores, not fault probabilities\"})\n",
+      "\n",
+      "# Center selection is numeric context; retain all sensors for relationship evidence.\n",
+      "print({\"center_mode\":\"selected sensor with all context retained\",\"weights\":\"same frozen STEP1/2 and hybrid GEVIS policy\",\"GEVIS_training_in_EXP\":False})\n",
+      "\n",
+      "EVALUATION_MODE=\"center\" if PIPELINE_SETTINGS[\"training_profile\"]==\"center_relation_v14\" else \"blind\"\n",
+      "print({\"primary_evaluation\":EVALUATION_MODE,\"answer_path\":\"unified_hybrid_evidence\",\"numerical_discovery\":\"same primary decision system\"})\n",
+      "\n",
+      "from pecvd.experiments.gevis_system import SYSTEM as GEVIS_SYSTEM\n",
+      "print({'gevis_system':GEVIS_SYSTEM,'decision_path':'hybrid','control_alert_budget':PIPELINE_SETTINGS['control_alert_budget'],'interval_mode':PIPELINE_SETTINGS.get('interval_mode','numeric')})\n"
+     ]
+    },
+    {
+     "id": "setup",
+     "cell_type": "code",
+     "source": [
+      "from pathlib import Path\n",
+      "import sys\n",
+      "ROOT=next((p for p in (Path.cwd().resolve(),*Path.cwd().resolve().parents) if (p/'src'/'pecvd').is_dir()),None)\n",
+      "if ROOT is None: raise RuntimeError('Run this notebook inside the PECVD project')\n",
+      "sys.path.insert(0,str(ROOT/'src'))\n",
+      "import pandas as pd\n",
+      "import importlib\n",
+      "import pecvd.experiments.evaluation as _evaluation_module\n",
+      "import pecvd.experiments.reporting as _reporting_module\n",
+      "import pecvd.experiments.routing_audit as _routing_module\n",
+      "_routing_module=importlib.reload(_routing_module)\n",
+      "_routing_module.refresh_evaluation_modules()\n",
+      "for _module in (_evaluation_module,_reporting_module): importlib.reload(_module)\n",
+      "show_report=_reporting_module.show_report\n",
+      "pd.set_option('display.max_columns',24)\n",
+      "pd.set_option('display.max_colwidth',100)\n",
+      "SEED=42\n",
+      "BATCH_SIZE=32\n",
+      "SELECTED_STEPS=None  # None evaluates every trained Step; use a list for a bounded subset.\n",
+      "TEST_PAIRS_PER_STEP=2\n",
+      "KINDS=None  # Resolve supported kinds from the loaded policy; core excludes stuck/delay/relationship.\n",
+      "STRENGTHS=(.5,2.)\n",
+      "MAX_CASES_PER_PAIR=8  # Bounded case budget; core needs 8 for all four kinds at both strengths.\n",
+      "MAX_QUESTIONS_PER_WINDOW=1000\n",
+      "\n",
+      "RUN_NUMERICAL_DISCOVERY=False  # Optional separate numerical threshold audit.\n"
+     ]
+    },
+    {
+     "id": "runtime-guide",
+     "cell_type": "markdown",
+     "source": [
+      "## 실제 모델 평가\n",
+      "\n",
+      "진행률이 출력됩니다. 공정 수·구간 수·질문 수에 따라 시간이 걸립니다.\n"
+     ]
+    },
+    {
+     "id": "runtime-check",
+     "cell_type": "code",
+     "source": [
+      "from pecvd.experiments.gevis_system import ready_gevis_runtime,run_gevis_experiment\n",
+      "RUNTIME=ready_gevis_runtime(ROOT)\n",
+      "REPORT=run_gevis_experiment(ROOT,runtime=RUNTIME,steps=SELECTED_STEPS,pairs_per_step=TEST_PAIRS_PER_STEP,\n",
+      "    kinds=KINDS,strengths=STRENGTHS,max_cases=MAX_CASES_PER_PAIR,seed=SEED,analysis_mode=EVALUATION_MODE)\n",
+      "display(REPORT.diagnostics.get('by_kind_and_strength',pd.DataFrame()))\n",
+      "print('ONE hybrid GEVIS, same as STEP4/EXP4. Synthetic-change metrics are not equipment-fault accuracy.')\n"
+     ]
+    },
+    {
+     "id": "boundary-comparison",
+     "cell_type": "code",
+     "source": [
+      "if getattr(RUNTIME.module,'DECISION_SYSTEM','hybrid')=='hybrid' and globals().get('RUN_GMM_COMPARISON',True):\n",
+      "    from pecvd.experiments.gmm_comparison import run_boundary_comparison\n",
+      "    try:\n",
+      "        BOUNDARY_REPORT=run_boundary_comparison(ROOT,runtime=RUNTIME,baseline_report=REPORT,\n",
+      "            steps=SELECTED_STEPS,split='test',pairs_per_step=TEST_PAIRS_PER_STEP,\n",
+      "            kinds=KINDS,strengths=STRENGTHS,max_cases=MAX_CASES_PER_PAIR,seed=SEED,\n",
+      "            analysis_mode=EVALUATION_MODE)\n",
+      "    except FileNotFoundError:\n",
+      "        display(pd.DataFrame([{'boundary':'gmm_direct','status':'NOT_PREPARED',\n",
+      "            'reason':'Prepare GMM in STEP 3; this experiment never fits on Test.'}]))\n",
+      "    else:\n",
+      "        display(BOUNDARY_REPORT.summary)\n",
+      "        display(BOUNDARY_REPORT.by_step)\n",
+      "        display(BOUNDARY_REPORT.diagnostics['by_kind'])\n",
+      "        display(BOUNDARY_REPORT.diagnostics['common_support'])\n"
+     ]
+    },
+    {
+     "id": "summary-guide",
+     "cell_type": "markdown",
+     "source": [
+      "## 최종 결과\n",
+      "\n",
+      "모델 실행 상태, 공정별 결과, 오류 사례와 종합 성능표를 확인합니다. 값이 비어 있으면 해당 사례/분모가 없는 항목입니다.\n"
+     ]
+    },
+    {
+     "id": "final-summary",
+     "cell_type": "code",
+     "source": [
+      "import pecvd.experiments.gevis_system as _summary_module\n",
+      "importlib.reload(_summary_module)\n",
+      "DETECTION_SUMMARY=REPORT.summary\n",
+      "SUMMARY=_summary_module.evaluation_summary(REPORT,process='PECVD')\n",
+      "REPORT.diagnostics['evaluation_summary']=SUMMARY\n",
+      "BY_STEP=REPORT.by_step\n",
+      "DETAILS=REPORT.details\n",
+      "ERROR_CASES=REPORT.errors\n",
+      "DIAGNOSTICS=REPORT.diagnostics\n",
+      "show_report(REPORT,display)\n"
+     ]
+    },
+    {
+     "id": "paired-threshold-comparison",
+     "cell_type": "code",
+     "source": [
+      "if RUN_NUMERICAL_DISCOVERY:\n",
+      "    # Same frozen model/cases; only the final window threshold changes.\n",
+      "    from pecvd.experiments.threshold_comparison import run_threshold_comparison\n",
+      "    THRESHOLD_COMPARISON=run_threshold_comparison(PIPELINE_ROOT,runtime=RUNTIME,\n",
+      "        split=PIPELINE_SETTINGS['comparison_split'],pairs_per_step=2,max_cases=14,seed=42)\n",
+      "    display(THRESHOLD_COMPARISON.summary)\n",
+      "    display(THRESHOLD_COMPARISON.by_step)\n",
+      "    display(THRESHOLD_COMPARISON.diagnostics['thresholds'])\n",
+      "    if 'center_gate_audit' in THRESHOLD_COMPARISON.diagnostics: display(THRESHOLD_COMPARISON.diagnostics['center_gate_audit'])\n",
+      "    display(THRESHOLD_COMPARISON.diagnostics['by_kind_and_strength'])\n",
+      "    for _key in ('position_calibration', 'relaxation_effect', 'paired_change_summary', 'paired_change_diagnosis', 'experimental_support', 'dynamic_challenge_controls'):\n",
+      "        if _key in THRESHOLD_COMPARISON.diagnostics: display(THRESHOLD_COMPARISON.diagnostics[_key])\n",
+      "    print(THRESHOLD_COMPARISON.metadata)\n",
+      "    \n",
+      "    if 'dynamic_challenge' in THRESHOLD_COMPARISON.diagnostics: display(THRESHOLD_COMPARISON.diagnostics['dynamic_challenge'])\n",
+      "    \n",
+      "else:\n",
+      "    print('Optional quantile sensitivity audit skipped; primary hybrid GEVIS evaluation completed.')\n"
+     ]
+    }
+   ]
+  },
+  "03_baseline_comparison.ipynb": {
+   "cells": [
+    {
+     "id": "title",
+     "cell_type": "markdown",
+     "source": [
+      "# EXP3 - Paired baselines against unified GEVIS\n",
+      "The primary method is GEVIS_shared_evidence_discovery. Exact same held-out inputs; no Test calibration. Answer-head-only predictions are an optional ablation, disabled by default.\n"
+     ]
+    },
+    {
+     "id": "pipeline-execution-guide",
+     "cell_type": "markdown",
+     "source": [
+      "## Shared current GEVIS checkpoint\n",
+      "\n",
+      "Reuse matching STEP1/2 weights. STEP3 trains and validates the existing answer heads, then saves full GEVIS. Restart this EXP kernel and Run All; no GEVIS training, backup search or numerical fallback occurs here.\n",
+      "\n",
+      "Learned answers, numerical discovery and held-out suffix forecasting are distinct evaluations. Checkpoint option text/order is used exactly. Original unlabelled predictions have no accuracy/F1 without independent truth.\n"
+     ]
+    },
+    {
+     "id": "shared-discovery-baseline-guide",
+     "cell_type": "markdown",
+     "source": [
+      "GEVIS_learned_answer uses the saved STEP3 decoder on every sensor of the exact same windows as the baselines. Its maximum Yes probability uses the same Validation controls as other scored methods, never Test. GEVIS_shared_evidence_discovery, when available, is a separate numerical detector, not the trained decoder. Sparse controls do not establish matched true fault FPR.\n"
+     ]
+    },
+    {
+     "id": "evidence-v3-guide",
+     "cell_type": "markdown",
+     "source": [
+      "## Scope and history\n",
+      "\n",
+      "Retired bundles are under `backup/artifacts/` and are not loaded automatically. Model softmax is not a calibrated fault probability. Historical discovery results do not measure the trained answer decoder.\n"
+     ]
+    },
+    {
+     "id": "shared-pipeline-settings",
+     "cell_type": "code",
+     "source": [
+      "# Shared settings: edit config/experiments/gevis_pipeline.json, then restart kernels.\n",
+      "from pathlib import Path\n",
+      "import sys, os\n",
+      "PIPELINE_ROOT=next(p for p in (Path.cwd().resolve(),*Path.cwd().resolve().parents) if (p/'src'/'pecvd').is_dir())\n",
+      "if str(PIPELINE_ROOT/'src') not in sys.path: sys.path.insert(0,str(PIPELINE_ROOT/'src'))\n",
+      "import importlib\n",
+      "for _name in (\"pecvd.model_variants\", \"pecvd.experiments.questions\", \"pecvd.experiments.pipeline_settings\"):\n",
+      "    importlib.reload(importlib.import_module(_name))\n",
+      "from pecvd.experiments.pipeline_settings import configure_pipeline\n",
+      "PIPELINE_SETTINGS=configure_pipeline(PIPELINE_ROOT)\n",
+      "print(PIPELINE_SETTINGS)\n",
+      "\n",
+      "# Stage 1: UI supplies Step/range/sensors; fixed questions never supply target labels.\n",
+      "from pecvd.experiments.questions import PRIMARY_GOAL_VERSION, DISCOVERY_QUESTIONS, SENSOR_QUESTION\n",
+      "from pecvd.answer_display import QUESTIONS as DISPLAY_QUESTIONS\n",
+      "print({\"question_contract\":PRIMARY_GOAL_VERSION,\"questions\":DISPLAY_QUESTIONS,\n",
+      "       \"training_profile\":PIPELINE_SETTINGS[\"training_profile\"],\"probabilities\":\"relative scores, not fault probabilities\"})\n",
+      "\n",
+      "# Center selection is numeric context; retain all sensors for relationship evidence.\n",
+      "print({\"center_mode\":\"selected sensor with all context retained\",\"weights\":\"same frozen STEP1/2 and hybrid GEVIS policy\",\"GEVIS_training_in_EXP\":False})\n",
+      "\n",
+      "EVALUATION_MODE=\"center\" if PIPELINE_SETTINGS[\"training_profile\"]==\"center_relation_v14\" else \"blind\"\n",
+      "print({\"primary_evaluation\":EVALUATION_MODE,\"answer_path\":\"unified_hybrid_evidence\",\"numerical_discovery\":\"same primary decision system\"})\n",
+      "\n",
+      "from pecvd.experiments.gevis_system import SYSTEM as GEVIS_SYSTEM\n",
+      "print({'gevis_system':GEVIS_SYSTEM,'decision_path':'hybrid','control_alert_budget':PIPELINE_SETTINGS['control_alert_budget'],'interval_mode':PIPELINE_SETTINGS.get('interval_mode','numeric')})\n"
+     ]
+    },
+    {
+     "id": "setup",
+     "cell_type": "code",
+     "source": [
+      "from pathlib import Path\n",
+      "import sys\n",
+      "ROOT=next((p for p in (Path.cwd().resolve(),*Path.cwd().resolve().parents) if (p/'src'/'pecvd').is_dir()),None)\n",
+      "if ROOT is None: raise RuntimeError('Run this notebook inside the PECVD project')\n",
+      "sys.path.insert(0,str(ROOT/'src'))\n",
+      "import importlib\n",
+      "import pecvd.experiments.routing_audit as _routing\n",
+      "importlib.reload(_routing).refresh_evaluation_modules()\n",
+      "import pandas as pd\n",
+      "from pecvd.experiments.reporting import show_report\n",
+      "pd.set_option('display.max_columns',24)\n",
+      "pd.set_option('display.max_colwidth',100)\n",
+      "SEED=42\n",
+      "BATCH_SIZE=32\n",
+      "SELECTED_STEPS=None  # None evaluates every trained Step; use a list for a bounded subset.\n",
+      "VALIDATION_PAIRS_PER_STEP=4\n",
+      "TEST_PAIRS_PER_STEP=2\n",
+      "MAX_CASES_PER_PAIR=4  # Mean shift, drift, spike and variance on identical test windows.\n",
+      "MAX_QUESTIONS_PER_WINDOW=1000\n",
+      "USE_MERLION=True  # Required: actual isolated Merlion execution.\n",
+      "from pecvd.experiments.merlion_backend import merlion_backend, require_merlion\n",
+      "merlion_backend(refresh=True)  # Retry stale preflight results in an existing kernel.\n",
+      "MERLION_BACKEND=require_merlion()\n",
+      "print('Merlion ready:',MERLION_BACKEND['merlion_version'],'|',MERLION_BACKEND['backend'])\n",
+      "USE_TEMPORAL=True\n",
+      "TEMPORAL_EPOCHS=10\n",
+      "\n",
+      "USE_LEARNED_ANSWERS=False  # Explicit optional ablation; primary GEVIS is hybrid.\n",
+      "RUN_NUMERICAL_DISCOVERY=False  # Optional separate numerical threshold audit.\n"
+     ]
+    },
+    {
+     "id": "runtime-guide",
+     "cell_type": "markdown",
+     "source": [
+      "## 실제 모델 평가\n",
+      "\n",
+      "진행률이 출력됩니다. 공정 수·구간 수·질문 수에 따라 시간이 걸립니다.\n"
+     ]
+    },
+    {
+     "id": "runtime-check",
+     "cell_type": "code",
+     "source": [
+      "# Refresh helper code even when this cell is rerun in an older live kernel.\n",
+      "# This does not reload GEVIS weights or reset the notebook configuration.\n",
+      "import importlib\n",
+      "import pecvd.experiments.merlion_backend as _merlion_module\n",
+      "import pecvd.experiments.baselines as _baselines_module\n",
+      "import pecvd.experiments.reporting as _reporting_module\n",
+      "for _module in (_merlion_module, _baselines_module, _reporting_module):\n",
+      "    importlib.reload(_module)\n",
+      "run_baseline_experiment = _reporting_module.run_baseline_experiment\n",
+      "show_report = _reporting_module.show_report\n",
+      "REPORT=run_baseline_experiment(ROOT,steps=SELECTED_STEPS,validation_pairs=VALIDATION_PAIRS_PER_STEP,\n",
+      "    test_pairs=TEST_PAIRS_PER_STEP,max_cases=MAX_CASES_PER_PAIR,\n",
+      "    batch_size=BATCH_SIZE,max_questions=MAX_QUESTIONS_PER_WINDOW,use_merlion=USE_MERLION,seed=SEED,use_temporal=USE_TEMPORAL,temporal_epochs=TEMPORAL_EPOCHS,use_learned_answers=USE_LEARNED_ANSWERS)\n",
+      "\n",
+      "print('GEVIS_shared_evidence_discovery is the primary unified GEVIS. Learned-answer ablation is off by default.')\n"
+     ]
+    },
+    {
+     "id": "summary-guide",
+     "cell_type": "markdown",
+     "source": [
+      "## 최종 결과\n",
+      "\n",
+      "모델 실행 상태, 공정별 결과, 오류 사례와 종합 성능표를 확인합니다. 값이 비어 있으면 해당 사례/분모가 없는 항목입니다.\n"
+     ]
+    },
+    {
+     "id": "final-summary",
+     "cell_type": "code",
+     "source": [
+      "SUMMARY=REPORT.summary\n",
+      "BY_STEP=REPORT.by_step\n",
+      "DETAILS=REPORT.details\n",
+      "ERROR_CASES=REPORT.errors\n",
+      "DIAGNOSTICS=REPORT.diagnostics\n",
+      "show_report(REPORT,display)\n"
+     ]
+    },
+    {
+     "id": "paired-threshold-comparison",
+     "cell_type": "code",
+     "source": [
+      "if RUN_NUMERICAL_DISCOVERY:\n",
+      "    # Same frozen model/cases; only the final window threshold changes.\n",
+      "    from pecvd.experiments.threshold_comparison import run_threshold_comparison\n",
+      "    THRESHOLD_COMPARISON=run_threshold_comparison(PIPELINE_ROOT,\n",
+      "        split=PIPELINE_SETTINGS['comparison_split'],pairs_per_step=2,max_cases=14,seed=42)\n",
+      "    display(THRESHOLD_COMPARISON.summary)\n",
+      "    display(THRESHOLD_COMPARISON.by_step)\n",
+      "    display(THRESHOLD_COMPARISON.diagnostics['thresholds'])\n",
+      "    display(THRESHOLD_COMPARISON.diagnostics['by_kind_and_strength'])\n",
+      "    print(THRESHOLD_COMPARISON.metadata)\n",
+      "    \n",
+      "    if 'dynamic_challenge' in THRESHOLD_COMPARISON.diagnostics: display(THRESHOLD_COMPARISON.diagnostics['dynamic_challenge'])\n",
+      "    \n",
+      "else:\n",
+      "    print('Numerical quantile audit skipped; it is not the learned-answer probability experiment.')\n"
+     ]
+    }
+   ]
+  },
+  "04_dataset_transfer.ipynb": {
+   "cells": [
+    {
+     "id": "title",
+     "cell_type": "markdown",
+     "source": [
+      "# EXP4 - Same GEVIS on external processes (PEALD example)\n",
+      "Same frozen encoder/fusion, hybrid decision and temporal localization. Threshold values are prepared from external reference/Validation inputs with the SAME algorithm and budget, never copied from CVD or fitted on Test. Original predictions and synthetic injection metrics are separate. Unsupported is NOT normal. This is calibrated transfer, not a proven zero-shot fault detector.\n"
+     ]
+    },
+    {
+     "id": "pipeline-execution-guide",
+     "cell_type": "markdown",
+     "source": [
+      "## One frozen GEVIS, two separate reports\n",
+      "\n",
+      "Run STEP3 preparation once, then use the same frozen hybrid GEVIS here. No answer-only decoder or external weight training is required in default discovery mode.\n",
+      "\n",
+      "1. Original PEALD inputs: predictions and answer coverage, without accuracy/F1 unless independent truth exists.\n",
+      "2. Synthetic injections: detection metrics and observable miss stages. Original controls remain unlabelled, not verified normal.\n",
+      "\n",
+      "The final diagnostic cell can analyze an existing REPORT without rerunning inference. It never changes thresholds or fits on Test.\n"
+     ]
+    },
+    {
+     "id": "evidence-v3-guide",
+     "cell_type": "markdown",
+     "source": [
+      "## 실행 범위\n",
+      "이 노트북은 오프라인 PEALD CSV 전처리 후, 고정 모델 추론을 실행합니다. 원본을 수정하거나 업로드하지 않습니다.\n",
+      "PEALD STEP 1/2 재학습은 필요하지 않습니다. 공정 인코더는 SOURCE_ENCODER_STEP으로 결과를 보기 전에 정합니다.\n",
+      "기본값 None은 PECVD manifest의 첫 인코더를 고정 사용합니다. 최고 외부 성능으로 인코더를 고르지 않습니다.\n",
+      "원본 가중치·manifest가 없으면 NOT_EVALUATED입니다. 지원하지 못하는 짧은 공정은 제외 사유를 따로 표시합니다.\n"
+     ]
+    },
+    {
+     "id": "shared-pipeline-settings",
+     "cell_type": "code",
+     "source": [
+      "# Shared settings: edit config/experiments/gevis_pipeline.json, then restart kernels.\n",
+      "from pathlib import Path\n",
+      "import sys, os\n",
+      "PIPELINE_ROOT=next(p for p in (Path.cwd().resolve(),*Path.cwd().resolve().parents) if (p/'src'/'pecvd').is_dir())\n",
+      "if str(PIPELINE_ROOT/'src') not in sys.path: sys.path.insert(0,str(PIPELINE_ROOT/'src'))\n",
+      "import importlib\n",
+      "for _name in (\"pecvd.model_variants\", \"pecvd.experiments.questions\", \"pecvd.experiments.pipeline_settings\"):\n",
+      "    importlib.reload(importlib.import_module(_name))\n",
+      "from pecvd.experiments.pipeline_settings import configure_pipeline\n",
+      "PIPELINE_SETTINGS=configure_pipeline(PIPELINE_ROOT)\n",
+      "print({'source_pipeline_settings':PIPELINE_SETTINGS,'exp4_prediction_mode':'discovery'})\n",
+      "\n",
+      "# Stage 1: UI supplies Step/range/sensors; fixed questions never supply target labels.\n",
+      "from pecvd.experiments.questions import PRIMARY_GOAL_VERSION\n",
+      "from pecvd.answer_display import QUESTIONS as DISPLAY_QUESTIONS\n",
+      "print({\"question_contract\":PRIMARY_GOAL_VERSION,\"display_language\":\"English\",\"questions\":dict(DISPLAY_QUESTIONS),\n",
+      "       \"training_profile\":PIPELINE_SETTINGS[\"training_profile\"],\"probabilities\":\"relative scores, not fault probabilities\"})\n",
+      "\n",
+      "CORE_PROFILE=PIPELINE_SETTINGS.get('operation_profile')=='core'\n",
+      "POSITION_GATE=PIPELINE_SETTINGS.get('gate_profile')=='position_rank_v4'\n",
+      "print({\"center_mode\":\"selected sensor self-change; context sensors retained\" if CORE_PROFILE else \"self and center-pair changes\",\n",
+      "       \"step1_step2\":\"frozen source weights; no training in EXP4\",\n",
+      "       \"criteria\":\"external TRAIN/Validation calibration with the SAME hybrid algorithm\",\n",
+      "       \"learned_head\":\"not used as an alternative detector\"})\n",
+      "\n",
+      "EVALUATION_MODE=\"center\" if PIPELINE_SETTINGS[\"training_profile\"]==\"center_relation_v14\" else \"blind\"\n",
+      "print({\"primary_evaluation\":\"original-data hybrid predictions and separately labelled injections\",\"step2_objective\":\"sensor/patch localization\", \"output\":\"conditional numerical evidence; not calibrated fault probability\"})\n",
+      "\n",
+      "from pecvd.experiments.gevis_system import SYSTEM as GEVIS_SYSTEM\n",
+      "print({'gevis_system':GEVIS_SYSTEM,'decision_path':'hybrid','control_alert_budget':PIPELINE_SETTINGS['control_alert_budget'],'interval_mode':PIPELINE_SETTINGS.get('interval_mode','numeric')})\n"
+     ]
+    },
+    {
+     "id": "threshold-applicability",
+     "cell_type": "markdown",
+     "source": [
+      "Default discovery mode uses process-specific reference/Validation criteria with the same GEVIS algorithm. Unsupported contexts are not normal. A low score, wrong sensor and missing interval are separate diagnostic observations, not interchangeable causes.\n"
+     ]
+    },
+    {
+     "id": "setup",
+     "cell_type": "code",
+     "source": [
+      "from pathlib import Path\n",
+      "import sys\n",
+      "ROOT=next((p for p in (Path.cwd().resolve(),*Path.cwd().resolve().parents) if (p/'src'/'pecvd').is_dir()),None)\n",
+      "if ROOT is None: raise RuntimeError('Run this notebook inside the PECVD project')\n",
+      "sys.path.insert(0,str(ROOT/'src'))\n",
+      "import pandas as pd\n",
+      "import importlib\n",
+      "import pecvd.experiments.process_inputs as _process_input_module\n",
+      "importlib.reload(_process_input_module)  # Refresh Step-occurrence alignment in warm kernels.\n",
+      "import pecvd.experiments.frozen_transfer as _transfer_module\n",
+      "import pecvd.experiments.evaluation as _evaluation_module\n",
+      "import pecvd.experiments.reporting as _reporting_module\n",
+      "import pecvd.experiments.routing_audit as _routing_module\n",
+      "_routing_module=importlib.reload(_routing_module)\n",
+      "_routing_module.refresh_evaluation_modules()\n",
+      "import pecvd.experiments.gevis_system as _gevis_system\n",
+      "for _module in (_transfer_module,_evaluation_module,_gevis_system,_reporting_module): importlib.reload(_module)\n",
+      "show_report=_reporting_module.show_report\n",
+      "pd.set_option('display.max_columns',24)\n",
+      "pd.set_option('display.max_colwidth',100)\n",
+      "SEED=42\n",
+      "BATCH_SIZE=32\n",
+      "SELECTED_STEPS=None  # None evaluates every trained Step; use a list for a bounded subset.\n",
+      "EXTERNAL_CONFIG=None  # Auto-discover the private PEALD mapping when prepared.  # New dataset process-config JSON path.\n",
+      "EXTERNAL_BACKBONE=None  # PECVD source backbone override, never PEALD-trained weights.\n",
+      "SOURCE_ENCODER_STEP=None  # Fixed before evaluation; None = first source manifest encoder.\n",
+      "PREDICTION_MODE='discovery'  # Same hybrid GEVIS as STEP4 and EXP2.\n",
+      "INCLUDE_INJECTION_EVALUATION=True  # Original-input predictions are always reported separately.\n",
+      "# Default evaluation excludes whole runs touching April/July in any year, per operator request.\n",
+      "QUALITY_OPTIONS=dict(suspect_months=(4,7),excluded_months=(4,7),\n",
+      "    minimum_step_rows={},exclude_file_edge_runs=False)\n",
+      "# Restored preprocessing: Step-local occurrence/native offset; no hierarchy/cadence filtering.\n",
+      "# No additional code needed. To include all months later, set excluded_months=().\n",
+      "# minimum_step_rows accepts raw Step names or configured phase IDs with engineer-specified minima.\n",
+      "# Dataset-edge candidates may be clipped; do not equate every Run boundary with corruption.\n",
+      "ANSWER_CHECKPOINT=None  # Auto: CURRENT backbone directory/gevis_answer_model.pt (or GEVIS_ANSWER_CHECKPOINT). No legacy-folder search.\n",
+      "ANSWER_QUESTIONS={k: DISPLAY_QUESTIONS[k] for k in ('BOOLEAN','CHOICE','ORDINAL')}  # Edit English questions here.\n",
+      "# GEVIS_EXTERNAL_CONFIG / GEVIS_SOURCE_BACKBONE are optional overrides.\n",
+      "TEST_PAIRS_PER_STEP=2\n",
+      "QUESTION_LIMIT=120\n",
+      "MAX_DETECTION_QUESTIONS_PER_WINDOW=None  # Exact sensor x statistic x scope budget; queries remain batched.\n",
+      "# Uses the canonical PECVD checkpoint, frozen. Native unseen-sensor support is checked explicitly.\n",
+      "# Fixed-ID HYBRID cannot silently substitute PECVD sensor IDs or disable joint attention.\n",
+      "# External input calibration only; same encoder object/weights/joint forward. No PEALD weight fitting.\n"
+     ]
+    },
+    {
+     "id": "runtime-guide",
+     "cell_type": "markdown",
+     "source": [
+      "## 실제 모델 평가\n",
+      "\n",
+      "진행률이 출력됩니다. 공정 수·구간 수·질문 수에 따라 시간이 걸립니다.\n"
+     ]
+    },
+    {
+     "id": "runtime-check",
+     "cell_type": "code",
+     "source": [
+      "from pecvd.experiments.reporting import run_transfer_experiment\n",
+      "print('ONE hybrid GEVIS: frozen source weights, external reference/Validation criteria; never source threshold reuse or Test fitting.')\n",
+      "REPORT=run_transfer_experiment(ROOT,process_config=EXTERNAL_CONFIG,backbone_path=EXTERNAL_BACKBONE,\n",
+      "    pairs_per_step=TEST_PAIRS_PER_STEP,question_limit=QUESTION_LIMIT,batch_size=BATCH_SIZE,seed=SEED,source_step=SOURCE_ENCODER_STEP,\n",
+      "    max_detection_questions=MAX_DETECTION_QUESTIONS_PER_WINDOW,prediction_mode=PREDICTION_MODE,\n",
+      "    include_injections=INCLUDE_INJECTION_EVALUATION,quality_options=QUALITY_OPTIONS)\n",
+      "ORIGINAL_PREDICTIONS=REPORT.diagnostics.get('original_input_predictions',REPORT.details if not INCLUDE_INJECTION_EVALUATION else pd.DataFrame())\n",
+      "if not ORIGINAL_PREDICTIONS.empty:\n",
+      "    display(ORIGINAL_PREDICTIONS[['step','pair_index','center_sensor','prediction','target_score','target_threshold','accepted']])\n",
+      "print('Unsupported contexts are not normal predictions. Original inputs have no independent fault labels.')\n"
+     ]
+    },
+    {
+     "id": "summary-guide",
+     "cell_type": "markdown",
+     "source": [
+      "## 최종 결과\n",
+      "\n",
+      "모델 실행 상태, 공정별 결과, 오류 사례와 종합 성능표를 확인합니다. 값이 비어 있으면 해당 사례/분모가 없는 항목입니다.\n"
+     ]
+    },
+    {
+     "id": "prediction-and-miss-diagnosis",
+     "cell_type": "code",
+     "source": [
+      "# Run this cell on an existing REPORT; no additional model inference or fitting.\n",
+      "import importlib\n",
+      "import pecvd.experiments.gevis_system as _gevis_system\n",
+      "importlib.reload(_gevis_system)\n",
+      "ORIGINAL_PREDICTIONS=REPORT.diagnostics.get('original_input_predictions',pd.DataFrame())\n",
+      "if ORIGINAL_PREDICTIONS.empty and not INCLUDE_INJECTION_EVALUATION:\n",
+      "    ORIGINAL_PREDICTIONS=REPORT.details\n",
+      "_diagnosis=_gevis_system.transfer_prediction_diagnostics(\n",
+      "    ORIGINAL_PREDICTIONS,REPORT.details if INCLUDE_INJECTION_EVALUATION else None)\n",
+      "if 'original_input_support' in REPORT.diagnostics:\n",
+      "    _diagnosis.pop('original_input_support',None)  # Preserve prepared-policy support details.\n",
+      "REPORT.diagnostics.update(_diagnosis)\n",
+      "for _name in ('original_input_summary','original_input_by_step','original_input_support',\n",
+      "              'injection_control_summary','injection_outcome_stages','injection_outcome_by_step','injection_miss_cases'):\n",
+      "    _table=REPORT.diagnostics.get(_name,pd.DataFrame())\n",
+      "    if not _table.empty:\n",
+      "        print(_name)\n",
+      "        display(_table.head(30))\n",
+      "print('Full tables: REPORT.diagnostics. Original-input accuracy/F1 requires independent labels.')\n"
+     ]
+    },
+    {
+     "id": "final-summary",
+     "cell_type": "code",
+     "source": [
+      "import pecvd.experiments.gevis_system as _summary_module\n",
+      "importlib.reload(_summary_module)\n",
+      "DETECTION_SUMMARY=REPORT.summary\n",
+      "SUMMARY=_summary_module.evaluation_summary(REPORT,process='PEALD')\n",
+      "REPORT.diagnostics['evaluation_summary']=SUMMARY\n",
+      "BY_STEP=REPORT.by_step\n",
+      "DETAILS=REPORT.details\n",
+      "ERROR_CASES=REPORT.errors\n",
+      "DIAGNOSTICS=REPORT.diagnostics\n",
+      "show_report(REPORT,display)\n"
+     ]
+    }
+   ]
+  }
+ }
+}

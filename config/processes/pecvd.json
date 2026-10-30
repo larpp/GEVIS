@@ -1,0 +1,57 @@
+{
+  "schema": "gevis.process_config.v1",
+  "process_family": "PECVD",
+  "data_path": "data/LOCAL_APPROVED_ANALYSIS.csv",
+  "artifacts": {
+    "encoder": "gevis_v4_rich_ssl_final_v1",
+    "decision": "gevis_fdc_e5_v1",
+    "legacy_decision": "gevis_fdc_v6"
+  },
+  "columns": {
+    "run": "process_key",
+    "step": "step_label",
+    "order": "row_in_process",
+    "step_one_hot_prefix": "step_name_",
+    "step_one_hot_excluded": [
+      "step_name_nan"
+    ]
+  },
+  "steps": [
+    {
+      "name": "Gap-up",
+      "window_length": 40,
+      "patch_length": 5,
+      "stride": 5
+    },
+    {
+      "name": "PRE-HEAT",
+      "window_length": 40,
+      "patch_length": 5,
+      "stride": 5
+    },
+    {
+      "name": "STAB1",
+      "window_length": 32,
+      "patch_length": 4,
+      "stride": 4
+    },
+    {
+      "name": "DEP.",
+      "window_length": 256,
+      "patch_length": 16,
+      "stride": 64
+    },
+    {
+      "name": "PURGE",
+      "window_length": 56,
+      "patch_length": 7,
+      "stride": 7
+    },
+    {
+      "name": "PUMPING",
+      "window_length": 72,
+      "patch_length": 9,
+      "stride": 9
+    }
+  ]
+}

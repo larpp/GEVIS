@@ -1,0 +1,6 @@
+# Isolated Python 3.12 baseline environment; do not install over GEVIS's NumPy 2 stack.
+salesforce-merlion==2.0.2
+numpy==1.26.4
+pandas==2.2.3
+scipy==1.13.1
+scikit-learn==1.5.2

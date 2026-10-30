@@ -1,0 +1,20 @@
+{
+  "schema": "gevis.process_config.v1",
+  "process_family": "ALD",
+  "data_path": "data/REPLACE_WITH_ALD_DATA.csv",
+  "artifacts": {
+    "encoder": "gevis_ald_encoder_v1",
+    "decision": "gevis_ald_fdc_v1",
+    "legacy_decision": "gevis_ald_fdc_v1"
+  },
+  "columns": {
+    "run": "REPLACE_WITH_RUN_COLUMN",
+    "step": "REPLACE_WITH_STEP_COLUMN",
+    "order": "REPLACE_WITH_ORDER_COLUMN",
+    "step_one_hot_prefix": "step_name_",
+    "step_one_hot_excluded": ["step_name_nan"]
+  },
+  "steps": [
+    {"name": "REPLACE_WITH_ALD_STEP", "window_length": 40, "patch_length": 5, "stride": 5}
+  ]
+}
