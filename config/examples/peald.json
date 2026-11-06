@@ -1,0 +1,15 @@
+{
+  "domain": "PEALD",
+  "data_path": "data/mt_nit/data_complete",
+  "encoder": "DEP.",
+  "schema_columns": null,
+  "max_window_length": 64,
+  "excluded_months": [],
+  "recipe_suffix": "",
+  "choice_modes": [
+    "softmax",
+    "grouped",
+    "sigmoid"
+  ],
+  "note": "현재 기본값입니다. 기존 전처리는 별도 작업 폴더로 외부 데이터를 연결해 사용하며 상태값 자동 판별 정책을 새로 추가하지 않았습니다."
+}

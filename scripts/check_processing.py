@@ -15,7 +15,7 @@ def main():
              'step2': 'STEP_2_train_gevis_backbone.ipynb'}
     filename = names.get(args.target, {'inference': 'STEP_3.1_run_gevis_inference.ipynb',
         'step3': 'STEP_3_train_gevis_decision.ipynb', 'load': 'GEVIS_load.ipynb'}[args.notebook])
-    notebook = json.loads((root / 'processing' / filename).read_text(encoding='utf-8'))
+    notebook = json.loads((root / 'notebooks/training' / filename).read_text(encoding='utf-8'))
     namespace = globals().copy()
     namespace['display'] = lambda value: None
     import torch
@@ -45,7 +45,7 @@ def main():
                 source = ''.join(cell['source']).replace("DOMAIN = 'PECVD'", f'DOMAIN = {args.target!r}')
                 exec(compile(source, filename, 'exec'), namespace)
     report = dict(target=args.target, notebook=filename, saved_loading=True, training_executed=False)
-    (root / 'processing' / f'check-{args.target.lower()}-{args.notebook}.local.json').write_text(
+    (root / 'notebooks/training' / f'check-{args.target.lower()}-{args.notebook}.local.json').write_text(
         json.dumps(report, indent=2), encoding='utf-8')
     print('CHECK_OK', args.target, flush=True)
 

@@ -51,7 +51,7 @@ def dependency_closure(root):
             nb = json.loads(path.read_text(encoding='utf-8'))
             sources = [''.join(cell['source']) for cell in nb['cells'] if cell['cell_type'] == 'code']
         else:
-            path = root / 'heads/_legacy_training' / program
+            path = root / 'src/heads/_legacy_training' / program
             if path.exists():
                 sources = [path.read_text(encoding='utf-8')]
         for source in sources:
@@ -135,12 +135,12 @@ def main():
                 label, reason = 'KEEP', 'active Encoder/Fusion/head asset or its reproducibility metadata'
             elif rel.startswith(('data/', '.cache/ald-native-inputs/', '.cache/ald-experiment-features/')):
                 label, reason = 'KEEP', 'private source data; never part of source release'
-            elif rel.startswith('processing/') or (rel.startswith('notebooks/') and
+            elif rel.startswith('notebooks/training/') or (rel.startswith('notebooks/') and
                     (Path(rel).name.startswith('STEP_') or Path(rel).name == 'GEVIS_load.ipynb')):
                 label, reason = 'KEEP', 'restored development/training notebooks and recovery provenance; retain'
             elif rel in closure:
                 label, reason = 'REFACTOR', 'preserved FDC/training dependency; hash-bound compatibility code'
-            elif rel.startswith(('GEVIS_Model/', 'heads/', 'examples/', 'configs/', 'docs/', 'tests/portable/')) or rel in (
+            elif rel.startswith(('src/GEVIS_Model/', 'src/heads/', 'examples/', 'config/', 'docs/', 'tests/portable/')) or rel in (
                 'README.md', 'pyproject.toml', '.gitignore', '.gitlab-ci.yml',
                 'notebooks/ALD_evaluate.ipynb', 'notebooks/CVD_evaluate.ipynb',
                 'scripts/audit_repository.py', 'scripts/build_gitlab_source.py',

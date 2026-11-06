@@ -9,17 +9,17 @@ from audit_repository import dependency_closure
 
 
 def paths(root, with_fdc=False):
-    names = {'README.md', 'FAILURE_LOG.md', 'pyproject.toml', '.gitignore', '.gitattributes', '.gitlab-ci.yml',
-             'checkpoints/README.md', 'scripts/build_gitlab_source.py', 'scripts/audit_repository.py',
+    names = {'README.md', 'pyproject.toml', '.gitignore', '.gitattributes', '.gitlab-ci.yml',
+             'docs/weights.md', 'scripts/build_gitlab_source.py', 'scripts/audit_repository.py',
              'scripts/plot_injection_examples.py', 'scripts/plot_training_history.py',
              'scripts/draw_architecture.py'}
-    for folder in ('GEVIS_Model', 'heads', 'examples', 'configs', 'docs', 'tests/portable'):
+    for folder in ('src/GEVIS_Model', 'src/heads', 'examples', 'config/examples', 'docs', 'tests/portable'):
         for path in (root / folder).rglob('*'):
             if (path.is_file() and '__pycache__' not in path.parts
                     and path.suffix not in ('.pyc', '.pt', '.npz')
                     and not path.name.endswith('.local.json')
                     and not any(part.endswith('.local') for part in path.parts)):
-                if not with_fdc and (path.is_relative_to(root/'heads') or
+                if not with_fdc and (path.is_relative_to(root/'src/heads') or
                     path.name in ('run_pecvd.py', 'run_peald.py', 'train_historical.py')):
                     continue
                 names.add(path.relative_to(root).as_posix())
@@ -29,8 +29,8 @@ def paths(root, with_fdc=False):
                 raise FileNotFoundError(f'Optional FDC source is unavailable: {required}')
         names.update(['scripts/verify_model_parity.py', 'scripts/verify_saved_heads.py'])
         names.add('scripts/check_notebooks.py')
-        names.update(['scripts/check_processing.py', 'processing/README.md', 'processing/workflow.py'])
-        names.update('processing/' + filename for filename in (
+        names.update(['scripts/check_processing.py', 'notebooks/training/README.md', 'notebooks/training/workflow.py'])
+        names.update('notebooks/training/' + filename for filename in (
             'STEP_1_train_patchtst_encoder.ipynb', 'STEP_2_train_gevis_backbone.ipynb',
             'STEP_3_train_gevis_decision.ipynb', 'STEP_3.1_run_gevis_inference.ipynb', 'GEVIS_load.ipynb'))
         names.update(['tests/test_ald_input_store.py', 'tests/test_ald_run_lineage.py',

@@ -6,7 +6,7 @@ BOOLEAN·CHOICE·ORDINAL 판별 헤드는 선택적인 후속 FDC 과제의 예�
 
 ![GEVIS 구조](docs/architecture/gevis.svg)
 
-인코더·Fusion·판별 헤드의 학습·로딩은 [processing/](processing/README.md),
+인코더·Fusion·판별 헤드의 학습·로딩은 [notebooks/training/](notebooks/training/README.md),
 ALD/CVD 실험과 평가는 [notebooks/](notebooks/README.md)를 사용합니다.
 
 사용자가 제공한 구성의 SVG 재현입니다. 그림의 CHOICE 6개는 정상 인덱스를 포함한 저장 출력 수이며,
@@ -37,21 +37,21 @@ python -m pip install -e '.[fdc,notebook]'
 python -m ipykernel install --user --name pecvd --display-name "Python (PECVD)"
 ```
 
-기존 가중치를 재사용하려면 [필요 자산과 폴더 배치](checkpoints/README.md)에 따라
+기존 가중치를 재사용하려면 [필요 자산과 폴더 배치](docs/weights.md)에 따라
 인코더·Fusion·헤드·데이터를 별도로 준비합니다. GitLab에서 코드만 받은 상태에는 가중치가 없습니다.
 E5 오프라인 모델 준비 방법은 [노트북 실행 안내](notebooks/README.md)에 있습니다.
 
 | 목적 | 실행 파일 | 기본 동작 |
 |---|---|---|
-| 공정별 시계열 인코더 | `processing/STEP_1_train_patchtst_encoder.ipynb` | 저장된 6개 인코더 재사용. 저장본이 없으면 학습 |
-| 질문·시계열 Fusion | `processing/STEP_2_train_gevis_backbone.ipynb` | STEP 1과의 연결을 검증해 저장 Fusion 재사용. 저장본이 없으면 학습 |
-| CVD/ALD 판별 헤드 | `processing/STEP_3_train_gevis_decision.ipynb` | `ACTION='load'`로 현재 evaluate 저장 헤드 로딩. `'train'`으로 바꿀 때 전처리·학습·평가 |
-| 저장 헤드 추론 | `processing/STEP_3.1_run_gevis_inference.ipynb` | 헤드 로딩 및 인공 입력의 추론 연결 확인. 학습 없음 |
-| GEVIS만 로딩 | `processing/GEVIS_load.ipynb` | 고정 인코더·Fusion 로딩. 다른 STEP 선행 실행 불필요 |
+| 공정별 시계열 인코더 | `notebooks/training/STEP_1_train_patchtst_encoder.ipynb` | 저장된 6개 인코더 재사용. 저장본이 없으면 학습 |
+| 질문·시계열 Fusion | `notebooks/training/STEP_2_train_gevis_backbone.ipynb` | STEP 1과의 연결을 검증해 저장 Fusion 재사용. 저장본이 없으면 학습 |
+| CVD/ALD 판별 헤드 | `notebooks/training/STEP_3_train_gevis_decision.ipynb` | `ACTION='load'`로 현재 evaluate 저장 헤드 로딩. `'train'`으로 바꿀 때 전처리·학습·평가 |
+| 저장 헤드 추론 | `notebooks/training/STEP_3.1_run_gevis_inference.ipynb` | 헤드 로딩 및 인공 입력의 추론 연결 확인. 학습 없음 |
+| GEVIS만 로딩 | `notebooks/training/GEVIS_load.ipynb` | 고정 인코더·Fusion 로딩. 다른 STEP 선행 실행 불필요 |
 | CVD 실험 | `notebooks/CVD_evaluate.ipynb` | 기존 CVD 전처리·분할로 헤드 학습·평가 |
 | ALD 실험 | `notebooks/ALD_evaluate.ipynb` | data_complete 전처리와 세 CHOICE 방식의 헤드 학습·평가 |
 
-`processing/` 노트북은 첫 코드 셀의 `PROJECT_PATH`에서 프로젝트 경로를 지정합니다.
+`notebooks/training/` 노트북은 첫 코드 셀의 `PROJECT_PATH`에서 프로젝트 경로를 지정합니다.
 기본 `None`은 현재 프로젝트를 찾습니다. 한 번 직접 지정하면 로컬 설정에 저장되어 다음 STEP이
 같은 경로를 사용합니다. 서로 다른 커널에서 실행해도 설정을 공유합니다.
 현재 evaluate 노트북은 첫 셀의 `WORKSPACE_PATH`로 데이터·가중치 폴더를 지정합니다.
@@ -101,10 +101,10 @@ python examples/train_historical.py --component fusion --root /workspace
 ## CVD / ALD FDC 예제 (선택 배포)
 
 노트북으로 실행한다면 FDC 배포본의 `notebooks/README.md`와
-[작업 폴더 구성](checkpoints/README.md)을 먼저 확인하세요. 첫 셀의 `WORKSPACE_PATH`로
+[작업 폴더 구성](docs/weights.md)을 먼저 확인하세요. 첫 셀의 `WORKSPACE_PATH`로
 코드 저장소와 데이터·가중치 위치를 분리할 수 있습니다.
 
-`heads/`는 핵심 모델과 분리되어 있으며 `GEVIS_Model`이 가져오지 않습니다.
+`src/heads/`는 핵심 모델과 분리되어 있으며 `GEVIS_Model`이 가져오지 않습니다.
 기존 헤드의 소스 해시 호환성을 위해 `src/pecvd`의 보수적인 의존성 집합을 별도로 유지합니다.
 FDC 예제는 `--with-fdc`로 만든 소스 배포본과 `pip install -e '.[fdc]'`가 필요합니다.
 기존 가중치·설정·CVD 입력 구간 캐시는 별도로 준비해야 합니다.
@@ -164,16 +164,19 @@ Softmax / Grouped Softmax / 독립 Sigmoid를 비교하되, 여러 Sigmoid 점�
 ## 폴더 구성
 
 ```text
-GEVIS_Model/             # 헤드와 독립인 수치·융합·추론·학습 모듈
-heads/                  # 선택적 FDC 명령·기존 학습 Python 프로그램
-examples/               # 합성 실행·숫자 학습·특징 추출·FDC 명령
-processing/             # STEP 1·2·3·3.1, GEVIS 로딩, 공통 경로 설정
-notebooks/              # CVD / ALD 전처리·헤드 학습·평가
-configs/                # 환경에 맞게 지정하는 경로 예시와 도메인 기본값
-checkpoints/README.md   # 필요한 비공개 가중치 안내
-docs/                   # 구조·전처리·평가·검증·정리 근거
-tests/portable/         # 비공개 데이터 없이 실행하는 테스트
-src/pecvd/              # --with-fdc 배포에서만 포함되는 기존 호환 구현
+src/
+  GEVIS_Model/          # 공개 라이브러리: 인코더·Fusion·추론·학습
+  heads/                # CVD/ALD 응용 및 기존 학습 프로그램
+  pecvd/                # 저장 가중치와 호환되는 내부 구현
+notebooks/
+  training/             # STEP 1·2·3·3.1, GEVIS 로딩, 공통 경로 설정
+  ALD_evaluate.ipynb     # ALD 전처리·헤드 학습·평가
+  CVD_evaluate.ipynb     # CVD 헤드 학습·평가
+config/                 # 공정·실험 설정과 examples/ 경로 예시
+examples/               # Python으로 실행하는 짧은 사용 예제
+docs/                   # 구조·가중치 준비·전처리·평가·변경 이력
+scripts/                # 검증·소스 배포·문서 그림 생성
+tests/                  # 라이브러리 및 전처리 회귀 테스트
 ```
 
 ## GitLab 배포
@@ -185,7 +188,7 @@ python scripts/build_gitlab_source.py --output /new-path/gevis-fdc --with-fdc
 
 첫 명령은 독립 인코더만, 두 번째는 CVD/ALD 예제까지 포함합니다. 목적지는 새 디렉터리여야 합니다.
 실제 데이터·가중치·캐시·Git 이력·개인 설정은 복사하지 않고 평가 노트북 출력도 제거합니다.
-FDC 배포본에는 `processing/`의 실행용 노트북과 공통 경로 모듈도 포함합니다.
+FDC 배포본에는 `notebooks/training/`의 실행용 노트북과 공통 경로 모듈도 포함합니다.
 로컬 복구 자료·원본 보관 사본·개인 경로 설정은 포함하지 않습니다.
 **현재 작업 폴더에서 `git add .`로 전체를 올리지 말고 생성한 소스 배포본을 검토하세요.**
 기존 Git 이력은 검사·정제되지 않았습니다. 코드/제조 가중치의 재배포 라이선스는 소유자가 결정해야
@@ -193,4 +196,8 @@ FDC 배포본에는 `processing/`의 실행용 노트북과 공통 경로 모듈
 
 실제 삭제 결과와 남겨 둔 호환 코드의 이유는 [정리 기록](docs/refactoring.md)에 있습니다.
 
-과거 시행착오와 수정 이유는 [FAILURE_LOG.md](FAILURE_LOG.md)에 통합했습니다.
+과거 시행착오와 수정 이유는 [docs/failure_log.md](docs/failure_log.md)에 통합했습니다.
+
+Python 패키지는 표준 `src` 구조로 설치합니다. 사용자는 `GEVIS_Model` API를 사용하며,
+`pecvd`는 기존 가중치의 소스 검증을 유지하는 내부 호환 구현입니다.
+폴더 이동으로 재학습하거나 저장 가중치를 변환할 필요는 없습니다.

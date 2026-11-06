@@ -18,8 +18,8 @@ notebook = ["ipykernel>=6", "ipywidgets>=8"]
 docs = ["matplotlib>=3.8,<4", "pillow>=10"]
 
 [tool.setuptools.packages.find]
-where = ["."]
-include = ["GEVIS_Model*", "heads*"]
+where = ["src"]
+include = ["GEVIS_Model*", "heads*", "pecvd*"]
 exclude = ["heads._legacy_training*"]
 
 [tool.pytest.ini_options]

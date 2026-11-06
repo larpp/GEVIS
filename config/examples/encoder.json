@@ -1,0 +1,6 @@
+{
+  "manifest": "artifacts/gevis_v4_rich_ssl_final_v1_native_multiscale_blind_v3/encoder_manifest.json",
+  "backbone": "artifacts/gevis_backbone_e5_v1_fdc_semantic_step1_bridge_all_types_v1_real_step1_native_multiscale_blind_v3_center_relation_v14_training_source_v2/gevis_backbone.pt",
+  "step": "DEP.",
+  "device": "cpu"
+}

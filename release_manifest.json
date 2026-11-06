@@ -9,8 +9,8 @@
     },
     {
       "path": ".gitignore",
-      "bytes": 392,
-      "sha256": "4fe73c4723990d3891b9c3cd4f4a89ab7bb5504111fb8761c363cd117189f79b"
+      "bytes": 400,
+      "sha256": "6104fd17074c75c1622084c3d02b8f23ddb2095d540638d016d94b134a4fa9fa"
     },
     {
       "path": ".gitlab-ci.yml",
@@ -18,109 +18,24 @@
       "sha256": "23e6ee36024cc0f700a28459c8160e2b347ba7f26d291e7e3ad46735d4f0c7b3"
     },
     {
-      "path": "FAILURE_LOG.md",
-      "bytes": 10454,
-      "sha256": "19109e2f5fe85f092896a10d9404caf9395ce76e6fe3c06bd0032fcf278b64cd"
-    },
-    {
-      "path": "GEVIS_Model/__init__.py",
-      "bytes": 330,
-      "sha256": "e6790a60c5eeaf645ccf9a6f06eb28751254dfaf51e5bda62d65606c62febcdd"
-    },
-    {
-      "path": "GEVIS_Model/encoder/__init__.py",
-      "bytes": 34,
-      "sha256": "5afcd8d9e2e27d2a10084c4a7b795f8b6cd3eb5932c824e1506b204bd9b8ed0f"
-    },
-    {
-      "path": "GEVIS_Model/encoder/multiscale_patchtst.py",
-      "bytes": 5725,
-      "sha256": "3f143303b31adbcb9f2a5144296edf18385c55e9336e3497625b5ebc69ff38ca"
-    },
-    {
-      "path": "GEVIS_Model/encoder/relational_features.py",
-      "bytes": 4015,
-      "sha256": "5dac3b9ba4c8653afe55c706da4b533f78620a49d341a45a0ee9abd2715fd9fb"
-    },
-    {
-      "path": "GEVIS_Model/encoder/temporal_patchtst.py",
-      "bytes": 5087,
-      "sha256": "3b16cb5610c0d95ef8af2b173634a1a1bd7f69c08369c6a7daf687df2f4fde12"
-    },
-    {
-      "path": "GEVIS_Model/fusion/__init__.py",
-      "bytes": 34,
-      "sha256": "5afcd8d9e2e27d2a10084c4a7b795f8b6cd3eb5932c824e1506b204bd9b8ed0f"
-    },
-    {
-      "path": "GEVIS_Model/fusion/model.py",
-      "bytes": 7027,
-      "sha256": "12b38dcbed3ce67255236d12b523a01257cb2c98a2ce321e81aab0edc4cc8803"
-    },
-    {
-      "path": "GEVIS_Model/fusion/temporal_bridge.py",
-      "bytes": 4464,
-      "sha256": "67c0641fa0f15136bd79ea18b091fc08c0a2afa33d0884a7e476a08410851e2c"
-    },
-    {
-      "path": "GEVIS_Model/fusion/text.py",
-      "bytes": 5579,
-      "sha256": "b14d7a3efc9742a8b9a7a03be93163909a5a886e9ccde4c8caff2fa1f1fdc54d"
-    },
-    {
-      "path": "GEVIS_Model/inference/__init__.py",
-      "bytes": 34,
-      "sha256": "5afcd8d9e2e27d2a10084c4a7b795f8b6cd3eb5932c824e1506b204bd9b8ed0f"
-    },
-    {
-      "path": "GEVIS_Model/inference/checkpoints.py",
-      "bytes": 4345,
-      "sha256": "39c4712f589089ec92f07bfa21a24cea81b797ba491e291e40ac3eac79b5bb22"
-    },
-    {
-      "path": "GEVIS_Model/inference/encoder.py",
-      "bytes": 4166,
-      "sha256": "e4f8d9f50e99fc04794375ee904a3dadd34e752626d5e3fd299178f5925a9123"
-    },
-    {
-      "path": "GEVIS_Model/preprocessing/__init__.py",
-      "bytes": 34,
-      "sha256": "5afcd8d9e2e27d2a10084c4a7b795f8b6cd3eb5932c824e1506b204bd9b8ed0f"
-    },
-    {
-      "path": "GEVIS_Model/preprocessing/normalization.py",
-      "bytes": 1546,
-      "sha256": "35e9b6f42130ba4d525b60206564e1ba13650f7185cbb211a00533059acedb1b"
-    },
-    {
-      "path": "GEVIS_Model/training/__init__.py",
-      "bytes": 34,
-      "sha256": "5afcd8d9e2e27d2a10084c4a7b795f8b6cd3eb5932c824e1506b204bd9b8ed0f"
-    },
-    {
-      "path": "GEVIS_Model/training/encoder.py",
-      "bytes": 3702,
-      "sha256": "c80a383a1cd28c55d37474ed3b9391e821c94e5b22c0e60271cc3c35c9486337"
-    },
-    {
-      "path": "GEVIS_Model/utils/__init__.py",
-      "bytes": 34,
-      "sha256": "5afcd8d9e2e27d2a10084c4a7b795f8b6cd3eb5932c824e1506b204bd9b8ed0f"
-    },
-    {
-      "path": "GEVIS_Model/utils/files.py",
-      "bytes": 679,
-      "sha256": "9fc99d6024c878685ce3aae29885feca1032d76c531d8b194f5ef5be837f5ff5"
-    },
-    {
       "path": "README.md",
-      "bytes": 13003,
-      "sha256": "c03b6654d4f31276f3bcc3987438a1ca594c6d774e98a3083ce21c4b85822fd3"
+      "bytes": 13404,
+      "sha256": "d60f4f84214804db87439d14c4935706ebb927582c544c7237bbf675ff7428e6"
     },
     {
-      "path": "checkpoints/README.md",
-      "bytes": 3212,
-      "sha256": "a80444bb8e3e22b95cf3dc043b0b5fb7e5d939efebfc721c2e4ab0057edd4330"
+      "path": "config/examples/encoder.json",
+      "bytes": 331,
+      "sha256": "39b515d83b03e56df0afb399ed3f137bbeeb6a29d60de1afc91956fc585d9701"
+    },
+    {
+      "path": "config/examples/peald.json",
+      "bytes": 472,
+      "sha256": "35a938ab80ae8654af2bfdf1e878f936a205bcca858d5820562ddc291d2f0208"
+    },
+    {
+      "path": "config/examples/pecvd.json",
+      "bytes": 255,
+      "sha256": "4323b7207f59ca1a5bb133404708589225e1601ffd3fe69465af4756468d488a"
     },
     {
       "path": "config/experiments/gevis_pipeline.json",
@@ -131,21 +46,6 @@
       "path": "config/processes/pecvd.json",
       "bytes": 933,
       "sha256": "214a857a698fcdd56128fd43fa969f05da79c50a3ed1e060d61fe389cac7d2a5"
-    },
-    {
-      "path": "configs/encoder.json",
-      "bytes": 159,
-      "sha256": "b4ccf6c96f0cb64675ccee75edd6aee78bc33a90c64c8b5682d48994bf965ed9"
-    },
-    {
-      "path": "configs/peald.json",
-      "bytes": 444,
-      "sha256": "fba9f2974b66e8378079c8f1a1f0061932570fcdd053502572defd1accb8e58f"
-    },
-    {
-      "path": "configs/pecvd.json",
-      "bytes": 242,
-      "sha256": "47b12b623022896958fc6f6e0d525b5d7c087ab28f5fb3213de36f6fac2a1b25"
     },
     {
       "path": "docs/architecture/README.md",
@@ -174,8 +74,13 @@
     },
     {
       "path": "docs/evaluation.md",
-      "bytes": 3044,
-      "sha256": "afe00a035f2af71243831826ef384952d22bf9b9d473694ade171aa83154c381"
+      "bytes": 3080,
+      "sha256": "e2b49536d9f83bff746ab9653c2649966f970cec90aa086319dd7b1864bb1ef9"
+    },
+    {
+      "path": "docs/failure_log.md",
+      "bytes": 10541,
+      "sha256": "64cdfb8a0f1e682610d1ef76ec1460ec3adf8aa9bcda0fd463eac00ff1bbb530"
     },
     {
       "path": "docs/injection_types/README.md",
@@ -209,8 +114,8 @@
     },
     {
       "path": "docs/refactoring.md",
-      "bytes": 2683,
-      "sha256": "b1835b06bcec6b2d4c331fb91860f57042b9309b0459fc7c7ca8cd58c9c275f8"
+      "bytes": 3468,
+      "sha256": "6bba8aa3c3369198b042d4722beb9de9be83ce5735d10589dddc370eb712d551"
     },
     {
       "path": "docs/tested_environment.json",
@@ -263,6 +168,11 @@
       "sha256": "9ba1e27871d3e476c12c3d9e47346d4247195d17da0e1a6dd7ad37e51c6be9be"
     },
     {
+      "path": "docs/weights.md",
+      "bytes": 3212,
+      "sha256": "a80444bb8e3e22b95cf3dc043b0b5fb7e5d939efebfc721c2e4ab0057edd4330"
+    },
+    {
       "path": "examples/extract_features.py",
       "bytes": 1568,
       "sha256": "929b9937149502b8ba2301cac0201261e8c3d6990aea79ce622daa1f962b9712"
@@ -289,38 +199,8 @@
     },
     {
       "path": "examples/train_historical.py",
-      "bytes": 855,
-      "sha256": "d64fe4efaacc33f03df416a94d36a89d92a8012e3cae13349fb111a89353b450"
-    },
-    {
-      "path": "heads/__init__.py",
-      "bytes": 66,
-      "sha256": "1735652ce26f994cb68fd2815092b1e59318f8a84166dc45a9e81a52a06f92c1"
-    },
-    {
-      "path": "heads/_legacy_training/encoder.py",
-      "bytes": 50638,
-      "sha256": "8f1705e014275247855fe45e6ac0ffda5be6d8ff8158c7f23d168c9c4eab3321"
-    },
-    {
-      "path": "heads/_legacy_training/fusion.py",
-      "bytes": 38765,
-      "sha256": "cc7ee717d894bbb0478d8e7534f58693f0974cdb56048fa810f919d8fec8c0a1"
-    },
-    {
-      "path": "heads/cli.py",
-      "bytes": 4481,
-      "sha256": "917b8bf52c530fe90c4695a549bad598816c095dea918c0b511e225a127d9c21"
-    },
-    {
-      "path": "heads/runtime.py",
-      "bytes": 688,
-      "sha256": "3dfca95905e442fee33a1893858e496a2d35e77c3be8457f332823fe19925a20"
-    },
-    {
-      "path": "heads/workspace.py",
-      "bytes": 3059,
-      "sha256": "dafc6f4f58d99daa92a0a6381769e93645c39917dcd44594ecea3641f839f42c"
+      "bytes": 884,
+      "sha256": "9bb9d33d26be849905735ee37ec747ce673a338cefe0437b4cbda4c6a7533bb2"
     },
     {
       "path": "notebooks/ALD_evaluate.ipynb",
@@ -334,58 +214,58 @@
     },
     {
       "path": "notebooks/README.md",
-      "bytes": 3557,
-      "sha256": "e9266d7858b719d5b49e813333a19927df152e12ad5f7b054e6f61072cc74541"
+      "bytes": 3584,
+      "sha256": "f07a0e32da64537205cba588e8a405778dff800800ce5fb13781862029f49d0a"
     },
     {
-      "path": "processing/GEVIS_load.ipynb",
-      "bytes": 2098,
-      "sha256": "7c9203745a6fd3586d9b9b2d667892afb76435d802bfb4af8001a1b9e839d617"
+      "path": "notebooks/training/GEVIS_load.ipynb",
+      "bytes": 2114,
+      "sha256": "9860fcf8493dfcbe0af1e677395d7d80f86dadd391cf65f71f73b4571e1317f3"
     },
     {
-      "path": "processing/README.md",
-      "bytes": 5197,
-      "sha256": "0e167f9a3e7eccb5ed93e0bcb4b6913541e71e610dfde801b427bf32ad95b946"
+      "path": "notebooks/training/README.md",
+      "bytes": 5264,
+      "sha256": "9967150f61e04f7806b13a76a58589e3289bb4af4f5ed5b4480ee649631a0149"
     },
     {
-      "path": "processing/STEP_1_train_patchtst_encoder.ipynb",
-      "bytes": 63260,
-      "sha256": "a36a40afbdd654144b2d59aec29e652990caa94a8bfba9a764b2d58ae2378348"
+      "path": "notebooks/training/STEP_1_train_patchtst_encoder.ipynb",
+      "bytes": 63276,
+      "sha256": "5ef46fc2fa3306539074bae46532894ea7fc42f4a0a4e18e2b77dcabfae0d08f"
     },
     {
-      "path": "processing/STEP_2_train_gevis_backbone.ipynb",
-      "bytes": 49645,
-      "sha256": "822baa105aff825de357f136a77fe924a3f9b319b7ce34033f0c49968e125fd6"
+      "path": "notebooks/training/STEP_2_train_gevis_backbone.ipynb",
+      "bytes": 49661,
+      "sha256": "bcd6e5319055226c50949a3db89890c8785889393cbe93232e2b6657410e6aa0"
     },
     {
-      "path": "processing/STEP_3.1_run_gevis_inference.ipynb",
-      "bytes": 3354,
-      "sha256": "abd869c05854f52e0e4eea297f2e3f2bf598f88add67f5654d2ed403518ae63b"
+      "path": "notebooks/training/STEP_3.1_run_gevis_inference.ipynb",
+      "bytes": 3370,
+      "sha256": "d8e29df1757ea867fa290e15945d58bffcb7bd94dc76c41086856f0edd77bc1c"
     },
     {
-      "path": "processing/STEP_3_train_gevis_decision.ipynb",
-      "bytes": 4029,
-      "sha256": "08df4ce0ee168f11f68db178cea254149b6676624fd9c05d1cc525f909083e90"
+      "path": "notebooks/training/STEP_3_train_gevis_decision.ipynb",
+      "bytes": 4045,
+      "sha256": "3a360fb5578e39640aa02ba61349e74beca8d5407ce3c7f9156b6226796e4294"
     },
     {
-      "path": "processing/workflow.py",
-      "bytes": 6190,
-      "sha256": "ba08a747092970941440ed02c9add18aec277ca44e39ede4d9aa968adb1d5ab2"
+      "path": "notebooks/training/workflow.py",
+      "bytes": 6309,
+      "sha256": "0fb6c658c85829a4b79080a97427cee4b0402695c117b9b133803b0dcc1d7656"
     },
     {
       "path": "pyproject.toml",
-      "bytes": 789,
-      "sha256": "efa8f7bdf6ce13a77bcfdc68bfa7a8de30aa80ac783868200b5c4c622ce49bbc"
+      "bytes": 801,
+      "sha256": "03e5138af9795b6cf70c1e0a98a9ed4838a5623d87941a3501be170277e166b9"
     },
     {
       "path": "scripts/audit_repository.py",
-      "bytes": 9634,
-      "sha256": "66f48cbb42d6b97c08ba23b30effa1a7261398970e0fe1a2e7e9a5177c409b9f"
+      "bytes": 9832,
+      "sha256": "563f51351fbbd64c2818128a00c961f3ae8b0ded909b8ab7aa381d1fa893cedf"
     },
     {
       "path": "scripts/build_gitlab_source.py",
-      "bytes": 6503,
-      "sha256": "00307b955e4e6e959f1a2bc64da7737109a585315bd186575d7d4918c5b37aa8"
+      "bytes": 6635,
+      "sha256": "deeeb7c987340a91cc08d3a60daa15bf3edd523cccc7b548aa60b7f6ee0de145"
     },
     {
       "path": "scripts/check_notebooks.py",
@@ -394,8 +274,8 @@
     },
     {
       "path": "scripts/check_processing.py",
-      "bytes": 2833,
-      "sha256": "60d8d7e41fe71f2573f13ed28c172aaeca19ba0cce13c6935b84f6392f42bf38"
+      "bytes": 2903,
+      "sha256": "15edcc78bd1c996101827966fecc7e417ca1361d01ec3200b39559247dd0d75b"
     },
     {
       "path": "scripts/draw_architecture.py",
@@ -421,6 +301,126 @@
       "path": "scripts/verify_saved_heads.py",
       "bytes": 2502,
       "sha256": "9dd9abc2965536d0981b738e23d846d966a2315e0d70067881dd945ebec98fdb"
+    },
+    {
+      "path": "src/GEVIS_Model/__init__.py",
+      "bytes": 330,
+      "sha256": "e6790a60c5eeaf645ccf9a6f06eb28751254dfaf51e5bda62d65606c62febcdd"
+    },
+    {
+      "path": "src/GEVIS_Model/encoder/__init__.py",
+      "bytes": 34,
+      "sha256": "5afcd8d9e2e27d2a10084c4a7b795f8b6cd3eb5932c824e1506b204bd9b8ed0f"
+    },
+    {
+      "path": "src/GEVIS_Model/encoder/multiscale_patchtst.py",
+      "bytes": 5725,
+      "sha256": "3f143303b31adbcb9f2a5144296edf18385c55e9336e3497625b5ebc69ff38ca"
+    },
+    {
+      "path": "src/GEVIS_Model/encoder/relational_features.py",
+      "bytes": 4015,
+      "sha256": "5dac3b9ba4c8653afe55c706da4b533f78620a49d341a45a0ee9abd2715fd9fb"
+    },
+    {
+      "path": "src/GEVIS_Model/encoder/temporal_patchtst.py",
+      "bytes": 5087,
+      "sha256": "3b16cb5610c0d95ef8af2b173634a1a1bd7f69c08369c6a7daf687df2f4fde12"
+    },
+    {
+      "path": "src/GEVIS_Model/fusion/__init__.py",
+      "bytes": 34,
+      "sha256": "5afcd8d9e2e27d2a10084c4a7b795f8b6cd3eb5932c824e1506b204bd9b8ed0f"
+    },
+    {
+      "path": "src/GEVIS_Model/fusion/model.py",
+      "bytes": 7027,
+      "sha256": "12b38dcbed3ce67255236d12b523a01257cb2c98a2ce321e81aab0edc4cc8803"
+    },
+    {
+      "path": "src/GEVIS_Model/fusion/temporal_bridge.py",
+      "bytes": 4464,
+      "sha256": "67c0641fa0f15136bd79ea18b091fc08c0a2afa33d0884a7e476a08410851e2c"
+    },
+    {
+      "path": "src/GEVIS_Model/fusion/text.py",
+      "bytes": 5579,
+      "sha256": "b14d7a3efc9742a8b9a7a03be93163909a5a886e9ccde4c8caff2fa1f1fdc54d"
+    },
+    {
+      "path": "src/GEVIS_Model/inference/__init__.py",
+      "bytes": 34,
+      "sha256": "5afcd8d9e2e27d2a10084c4a7b795f8b6cd3eb5932c824e1506b204bd9b8ed0f"
+    },
+    {
+      "path": "src/GEVIS_Model/inference/checkpoints.py",
+      "bytes": 4345,
+      "sha256": "39c4712f589089ec92f07bfa21a24cea81b797ba491e291e40ac3eac79b5bb22"
+    },
+    {
+      "path": "src/GEVIS_Model/inference/encoder.py",
+      "bytes": 4166,
+      "sha256": "e4f8d9f50e99fc04794375ee904a3dadd34e752626d5e3fd299178f5925a9123"
+    },
+    {
+      "path": "src/GEVIS_Model/preprocessing/__init__.py",
+      "bytes": 34,
+      "sha256": "5afcd8d9e2e27d2a10084c4a7b795f8b6cd3eb5932c824e1506b204bd9b8ed0f"
+    },
+    {
+      "path": "src/GEVIS_Model/preprocessing/normalization.py",
+      "bytes": 1546,
+      "sha256": "35e9b6f42130ba4d525b60206564e1ba13650f7185cbb211a00533059acedb1b"
+    },
+    {
+      "path": "src/GEVIS_Model/training/__init__.py",
+      "bytes": 34,
+      "sha256": "5afcd8d9e2e27d2a10084c4a7b795f8b6cd3eb5932c824e1506b204bd9b8ed0f"
+    },
+    {
+      "path": "src/GEVIS_Model/training/encoder.py",
+      "bytes": 3702,
+      "sha256": "c80a383a1cd28c55d37474ed3b9391e821c94e5b22c0e60271cc3c35c9486337"
+    },
+    {
+      "path": "src/GEVIS_Model/utils/__init__.py",
+      "bytes": 34,
+      "sha256": "5afcd8d9e2e27d2a10084c4a7b795f8b6cd3eb5932c824e1506b204bd9b8ed0f"
+    },
+    {
+      "path": "src/GEVIS_Model/utils/files.py",
+      "bytes": 679,
+      "sha256": "9fc99d6024c878685ce3aae29885feca1032d76c531d8b194f5ef5be837f5ff5"
+    },
+    {
+      "path": "src/heads/__init__.py",
+      "bytes": 66,
+      "sha256": "1735652ce26f994cb68fd2815092b1e59318f8a84166dc45a9e81a52a06f92c1"
+    },
+    {
+      "path": "src/heads/_legacy_training/encoder.py",
+      "bytes": 50638,
+      "sha256": "8f1705e014275247855fe45e6ac0ffda5be6d8ff8158c7f23d168c9c4eab3321"
+    },
+    {
+      "path": "src/heads/_legacy_training/fusion.py",
+      "bytes": 38765,
+      "sha256": "cc7ee717d894bbb0478d8e7534f58693f0974cdb56048fa810f919d8fec8c0a1"
+    },
+    {
+      "path": "src/heads/cli.py",
+      "bytes": 4481,
+      "sha256": "917b8bf52c530fe90c4695a549bad598816c095dea918c0b511e225a127d9c21"
+    },
+    {
+      "path": "src/heads/runtime.py",
+      "bytes": 688,
+      "sha256": "3dfca95905e442fee33a1893858e496a2d35e77c3be8457f332823fe19925a20"
+    },
+    {
+      "path": "src/heads/workspace.py",
+      "bytes": 3059,
+      "sha256": "dafc6f4f58d99daa92a0a6381769e93645c39917dcd44594ecea3641f839f42c"
     },
     {
       "path": "src/pecvd/__init__.py",
@@ -839,8 +839,8 @@
     },
     {
       "path": "tests/portable/test_workspace.py",
-      "bytes": 2035,
-      "sha256": "6f4c2989c2dcf091aaf8ee3cbbe5d10216e3e7c12ad23801d523f07ee69de7ac"
+      "bytes": 2080,
+      "sha256": "7ed69e0daf8e42504405c4e1fa1d0b45899fd00e7d1d31cb86a4324f99e66195"
     },
     {
       "path": "tests/test_ald_head_experiments.py",

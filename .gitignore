@@ -28,6 +28,6 @@ venv/
 .claude/
 .ipynb_checkpoints/
 config/a_local.json
-configs/local*.json
+config/examples/local*.json
 *.local.json
 *.local/

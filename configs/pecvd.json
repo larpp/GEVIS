@@ -1,6 +1,0 @@
-{
-  "domain": "PECVD",
-  "data_path": "../data/all_processes_analysis.csv",
-  "choice_modes": ["softmax"],
-  "note": "기존 센서 메타데이터·입력 구간·Run 분할이 인코더 목록의 원본 해시와 일치해야 합니다."
-}

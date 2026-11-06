@@ -5,7 +5,7 @@ import pytest
 
 
 def workspace_module():
-    file=Path(__file__).resolve().parents[2]/'heads/workspace.py'
+    file=Path(__file__).resolve().parents[2]/'src/heads/workspace.py'
     if not file.is_file():
         pytest.skip('Optional FDC source tree not included')
     spec=importlib.util.spec_from_file_location('workspace_under_test',file)
