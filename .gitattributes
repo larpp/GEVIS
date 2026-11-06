@@ -1,0 +1,6 @@
+# 기존 가중치와 배포 목록은 소스 원본 바이트의 SHA256을 사용한다.
+# Windows/Linux에서 줄바꿈 자동 변환으로 모델 호환성 검사가 깨지지 않도록 보존한다.
+* -text
+*.png binary
+*.jpg binary
+*.jpeg binary

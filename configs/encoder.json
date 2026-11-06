@@ -1,0 +1,6 @@
+{
+  "manifest": "../checkpoints/encoder/encoder_manifest.json",
+  "backbone": "../checkpoints/fusion/gevis_backbone.pt",
+  "step": "DEP.",
+  "device": "cpu"
+}

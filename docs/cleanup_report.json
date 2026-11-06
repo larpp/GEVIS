@@ -1,0 +1,29 @@
+{
+  "date": "2026-11-05",
+  "completed_targets": 233,
+  "failed_targets": 0,
+  "deleted_target_groups": {
+    ".cache": 77,
+    "artifacts": 19,
+    ".gitlab-release": 6,
+    "src": 17,
+    "scripts": 17,
+    "tests": 82,
+    "_blueprint": 1,
+    "_docs": 1,
+    "_evidence": 1,
+    "_meta": 1,
+    "_note": 1,
+    ".pytest_cache": 1,
+    "gevis_encoder.egg-info": 1,
+    "GEVIS_Model": 7,
+    "heads": 1
+  },
+  "protected_model_assets": 18,
+  "active_feature_corpora": 6,
+  "preserved_cache": [
+    "ald-native-inputs",
+    "ald-experiment-features"
+  ],
+  "additional_file_cleanup": "blocked by automatic approval review; no bypass attempted"
+}

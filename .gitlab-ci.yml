@@ -1,0 +1,11 @@
+image: python:3.12-slim
+
+stages:
+  - test
+
+portable-core:
+  stage: test
+  script:
+    - python -m pip install '.[test]'
+    - python -m pytest tests/portable -q
+    - python examples/synthetic_features.py

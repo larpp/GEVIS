@@ -1,0 +1,120 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1783" height="589" viewBox="0 0 1783 589">
+<defs>
+ <linearGradient id="blue" x2="0" y2="1"><stop stop-color="#f3faff"/><stop offset="1" stop-color="#e4f2ff"/></linearGradient>
+ <linearGradient id="purple" x2="0" y2="1"><stop stop-color="#faf6ff"/><stop offset="1" stop-color="#f0e7ff"/></linearGradient>
+ <linearGradient id="pink" x2="0" y2="1"><stop stop-color="#fff8fd"/><stop offset="1" stop-color="#ffeaf7"/></linearGradient>
+ <linearGradient id="green" x2="0" y2="1"><stop stop-color="#f5fff8"/><stop offset="1" stop-color="#e8f8ed"/></linearGradient>
+ <linearGradient id="strongblue" x2="0" y2="1"><stop stop-color="#1da0ff"/><stop offset="1" stop-color="#0065ef"/></linearGradient>
+ <marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8Z" fill="#087bff"/></marker>
+ <marker id="violetarrow" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0 0 L7 3.5 L0 7Z" fill="#9250fb"/></marker>
+</defs>
+<rect width="1783" height="589" fill="white"/>
+<style>text{font-family:Arial,'DejaVu Sans',sans-serif;fill:#071650} .bold{font-weight:700} .line{fill:none;stroke:#087bff;stroke-width:3;marker-end:url(#arrow)} .vline{fill:none;stroke:#9250fb;stroke-width:3;marker-end:url(#violetarrow)}</style>
+<text x="54" y="44" font-size="42" text-anchor="start" class="bold" style="fill:#1b3472">GEVIS Architecture (Updated)</text>
+<rect x="13" y="85" width="342" height="449" rx="24" fill="url(#blue)" stroke="#1685ff" stroke-width="1.7"/>
+<text x="34" y="131" font-size="38" text-anchor="start" class="bold" style="fill:#1596ef">⚙</text>
+<text x="100" y="124" font-size="26" text-anchor="start" class="bold">ALD Preprocessing</text>
+<text x="100" y="151" font-size="25" text-anchor="start" class="bold">(Separated)</text>
+<rect x="41" y="182" width="289" height="89" rx="18" fill="#f8f8ff" stroke="#c6d4ed" stroke-width="1.7"/>
+<text x="151" y="219" font-size="23" text-anchor="start" class="bold">ALD Data</text>
+<text x="151" y="247" font-size="22" text-anchor="start">(e.g., PEALD)</text>
+<rect x="41" y="302" width="289" height="89" rx="18" fill="#f8f8ff" stroke="#c6d4ed" stroke-width="1.7"/>
+<text x="151" y="339" font-size="23" text-anchor="start" class="bold">Preprocess</text>
+<text x="151" y="367" font-size="22" text-anchor="start">(Sensor · Norm.)</text>
+<rect x="41" y="425" width="289" height="89" rx="18" fill="#f8f8ff" stroke="#c6d4ed" stroke-width="1.7"/>
+<text x="151" y="462" font-size="23" text-anchor="start" class="bold">Normal Range</text>
+<text x="151" y="490" font-size="22" text-anchor="start">(MIN / MAX)</text>
+<g fill="none" stroke="#7851bc" stroke-width="3"><ellipse cx="93" cy="211" rx="20" ry="10"/><path d="M73 211V241C73 254 113 254 113 241V211 M73 226C73 239 113 239 113 226"/></g>
+<g stroke="#7851bc" stroke-width="4"><path d="M77 330H120 M77 347H120 M77 364H120"/></g><g fill="#f8f8ff" stroke="#7851bc" stroke-width="4"><circle cx="90" cy="330" r="5"/><circle cx="106" cy="347" r="5"/><circle cx="96" cy="364" r="5"/></g>
+<rect x="73" y="467" width="10" height="23" rx="2" fill="#835ac7" stroke="#835ac7" stroke-width="1.7"/>
+<rect x="89" y="446" width="10" height="44" rx="2" fill="#835ac7" stroke="#835ac7" stroke-width="1.7"/>
+<rect x="105" y="456" width="10" height="34" rx="2" fill="#835ac7" stroke="#835ac7" stroke-width="1.7"/>
+<path class="line" d="M190 273 L190 297"/>
+<path class="line" d="M190 393 L190 420"/>
+<path class="line" d="M357 322 L387 322"/>
+<rect x="389" y="73" width="715" height="481" rx="27" fill="#fcfdff" stroke="#258cff" stroke-width="1.7" stroke-dasharray="10 8"/>
+<g fill="#158cf4"><rect x="424" y="109" width="34" height="28" rx="5"/><path d="M431 110V102A10 10 0 0 1 451 102V110H446V102A5 5 0 0 0 436 102V110Z"/></g>
+<text x="487" y="118" font-size="32" text-anchor="start" class="bold">GEVIS (Feature Extractor, Fixed)</text>
+<text x="487" y="148" font-size="24" text-anchor="start">Trained on PECVD (6 Step Encoders)</text>
+<rect x="404" y="172" width="227" height="347" rx="18" fill="url(#blue)" stroke="#58a8ff" stroke-width="1.7"/>
+<text x="517" y="205" font-size="25" text-anchor="middle" class="bold">Time-series</text>
+<text x="517" y="234" font-size="25" text-anchor="middle" class="bold">Encoder</text>
+<text x="517" y="263" font-size="22" text-anchor="middle">(PECVD, 6 Steps)</text>
+<rect x="421" y="278" width="191" height="31" rx="9" fill="#f5faff" stroke="#74b8ff" stroke-width="1.7"/>
+<text x="516" y="300" font-size="19" text-anchor="middle" class="bold">Gap-up</text>
+<rect x="421" y="315" width="191" height="31" rx="9" fill="#f5faff" stroke="#74b8ff" stroke-width="1.7"/>
+<text x="516" y="337" font-size="19" text-anchor="middle" class="bold">PRE-HEAT</text>
+<rect x="421" y="352" width="191" height="31" rx="9" fill="#f5faff" stroke="#74b8ff" stroke-width="1.7"/>
+<text x="516" y="374" font-size="19" text-anchor="middle" class="bold">STAB1</text>
+<rect x="421" y="389" width="191" height="31" rx="9" fill="#086dff" stroke="#74b8ff" stroke-width="1.7"/>
+<text x="516" y="411" font-size="19" text-anchor="middle" style="fill:white">DEP. (Used)</text>
+<rect x="421" y="426" width="191" height="31" rx="9" fill="#f5faff" stroke="#74b8ff" stroke-width="1.7"/>
+<text x="516" y="448" font-size="19" text-anchor="middle" class="bold">PURGE</text>
+<rect x="421" y="463" width="191" height="31" rx="9" fill="#f5faff" stroke="#74b8ff" stroke-width="1.7"/>
+<text x="516" y="485" font-size="19" text-anchor="middle" class="bold">PUMPING</text>
+<path class="line" d="M633 322 L661 322"/>
+<rect x="663" y="195" width="225" height="203" rx="18" fill="url(#purple)" stroke="#ab7cff" stroke-width="1.7"/>
+<text x="775" y="229" font-size="28" text-anchor="middle" class="bold">Fusion</text>
+<text x="775" y="257" font-size="21" text-anchor="middle">(Cross-Attention)</text>
+<rect x="691" y="277" width="50" height="32" rx="8" fill="#ffe3f8" stroke="#f3a4e5" stroke-width="1.7"/>
+<text x="716" y="301" font-size="24" text-anchor="middle" class="bold">Q</text>
+<rect x="691" y="315" width="50" height="32" rx="8" fill="#ffe3f8" stroke="#f3a4e5" stroke-width="1.7"/>
+<text x="716" y="339" font-size="24" text-anchor="middle" class="bold">K</text>
+<rect x="691" y="353" width="50" height="32" rx="8" fill="#ffe3f8" stroke="#f3a4e5" stroke-width="1.7"/>
+<text x="716" y="377" font-size="24" text-anchor="middle" class="bold">V</text>
+<g class="vline"><path d="M746 291C784 291 783 319 823 319"/><path d="M746 331H823"/><path d="M746 369C784 369 783 342 823 342"/></g>
+<circle cx="847" cy="330" r="21" fill="#fcf7ff" stroke="#a36cff" stroke-width="3"/><path d="M836 330H858 M847 319V341" stroke="#a36cff" stroke-width="3"/>
+<rect x="656" y="446" width="315" height="83" rx="18" fill="url(#purple)" stroke="#ba8bff" stroke-width="1.7"/>
+<path d="M677 463H702L714 476V510H677Z M702 463V477H714 M685 486H704 M685 497H704" stroke="#087bff" fill="none" stroke-width="3"/>
+<text x="744" y="480" font-size="25" text-anchor="start" class="bold">Question Encoder</text>
+<text x="744" y="510" font-size="23" text-anchor="start">(E5-small-v2, Frozen)</text>
+<path class="vline" d="M828 444V400"/>
+<path class="line" d="M890 322 L920 322"/>
+<rect x="922" y="217" width="169" height="183" rx="18" fill="url(#blue)" stroke="#58a8ff" stroke-width="1.7"/>
+<text x="1007" y="253" font-size="22" text-anchor="middle" class="bold">GEVIS Feature</text>
+<text x="1007" y="281" font-size="23" text-anchor="middle">(768-d)</text>
+<rect x="941" y="318" width="26" height="35" rx="4" fill="#91b4ff" stroke="#91b4ff" stroke-width="1.7"/>
+<rect x="967" y="318" width="26" height="35" rx="4" fill="#b99bff" stroke="#b99bff" stroke-width="1.7"/>
+<rect x="993" y="318" width="26" height="35" rx="4" fill="#ffe27d" stroke="#ffe27d" stroke-width="1.7"/>
+<text x="1064" y="340" font-size="28" text-anchor="middle" class="bold">···</text>
+<path class="line" d="M1095 322 L1127 322"/>
+<rect x="1129" y="182" width="252" height="304" rx="23" fill="url(#blue)" stroke="#58a8ff" stroke-width="1.7"/>
+<text x="1255" y="215" font-size="26" text-anchor="middle" class="bold">Feature Assembly</text>
+<text x="1255" y="243" font-size="24" text-anchor="middle" class="bold">(1,546-d)</text>
+<rect x="1147" y="264" width="216" height="43" rx="11" fill="url(#purple)" stroke="#bba0f9" stroke-width="1.7"/>
+<text x="1159" y="292" font-size="19" text-anchor="start" class="bold">GEVIS (MIN)</text>
+<text x="1352" y="292" font-size="20" text-anchor="end">768-d</text>
+<rect x="1147" y="317" width="216" height="43" rx="11" fill="url(#purple)" stroke="#bba0f9" stroke-width="1.7"/>
+<text x="1159" y="345" font-size="19" text-anchor="start" class="bold">GEVIS (MAX)</text>
+<text x="1352" y="345" font-size="20" text-anchor="end">768-d</text>
+<rect x="1147" y="370" width="216" height="43" rx="11" fill="url(#blue)" stroke="#9dd7f4" stroke-width="1.7"/>
+<text x="1159" y="398" font-size="19" text-anchor="start" class="bold">Boundary Stats</text>
+<text x="1352" y="398" font-size="20" text-anchor="end">8-d</text>
+<rect x="1147" y="421" width="216" height="43" rx="11" fill="url(#blue)" stroke="#9dd7f4" stroke-width="1.7"/>
+<text x="1159" y="449" font-size="19" text-anchor="start" class="bold">Time Info</text>
+<text x="1352" y="449" font-size="20" text-anchor="end">2-d</text>
+<path class="line" d="M1383 322 L1407 322"/>
+<rect x="1399" y="85" width="382" height="444" rx="24" fill="url(#purple)" stroke="#7731ef" stroke-width="1.7"/>
+<g fill="white" stroke="#6a28bc" stroke-width="3"><circle cx="1440" cy="111" r="6"/><circle cx="1430" cy="141" r="6"/><circle cx="1452" cy="141" r="6"/><path d="M1440 117L1430 135 M1440 117L1452 135"/></g>
+<text x="1470" y="118" font-size="27" text-anchor="start" class="bold">ALD Decision Heads</text>
+<text x="1470" y="147" font-size="24" text-anchor="start">(Trained on ALD)</text>
+<rect x="1425" y="190" width="334" height="89" rx="18" fill="url(#blue)" stroke="#80bfff" stroke-width="1.7"/>
+<circle cx="1472" cy="233" r="29" fill="#2b9cf7"/>
+<text x="1527" y="227" font-size="28" text-anchor="start" class="bold">BOOLEAN Head</text>
+<text x="1527" y="257" font-size="23" text-anchor="start">(2 classes)</text>
+<path d="M1457 232L1467 242L1487 221" fill="none" stroke="white" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="1425" y="298" width="334" height="89" rx="18" fill="url(#pink)" stroke="#f4a1dd" stroke-width="1.7"/>
+<circle cx="1472" cy="341" r="29" fill="#ef5ab6"/>
+<text x="1527" y="335" font-size="28" text-anchor="start" class="bold">CHOICE Head</text>
+<text x="1527" y="365" font-size="23" text-anchor="start">(6 classes)</text>
+<circle cx="1459" cy="329" r="2" fill="white"/><path d="M1467 329H1486" stroke="white" stroke-width="3"/>
+<circle cx="1459" cy="341" r="2" fill="white"/><path d="M1467 341H1486" stroke="white" stroke-width="3"/>
+<circle cx="1459" cy="353" r="2" fill="white"/><path d="M1467 353H1486" stroke="white" stroke-width="3"/>
+<rect x="1425" y="406" width="334" height="89" rx="18" fill="url(#green)" stroke="#8dd4aa" stroke-width="1.7"/>
+<circle cx="1472" cy="449" r="29" fill="#19bf6b"/>
+<text x="1527" y="443" font-size="28" text-anchor="start" class="bold">ORDINAL Head</text>
+<text x="1527" y="473" font-size="23" text-anchor="start">(5 levels)</text>
+<rect x="1456" y="454" width="7" height="10" rx="1" fill="white" stroke="white" stroke-width="1.7"/>
+<rect x="1467" y="445" width="7" height="19" rx="1" fill="white" stroke="white" stroke-width="1.7"/>
+<rect x="1478" y="435" width="7" height="29" rx="1" fill="white" stroke="white" stroke-width="1.7"/>
+</svg>

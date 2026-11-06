@@ -1,93 +1,196 @@
-# GEVIS_revise
+# GEVIS — 다중모달 융합 인코더
 
+GEVIS는 시계열의 현재·참조 파형과 질문을 결합하는 특징 추출기입니다.
+**시계열 인코더 → 비교 특징 → 질문 조건 교차 어텐션 융합**이 핵심이며,
+BOOLEAN·CHOICE·ORDINAL 판별 헤드는 선택적인 후속 FDC 과제의 예제입니다.
 
+![GEVIS 구조](docs/architecture/gevis.svg)
 
-## Getting started
+인코더·Fusion·판별 헤드의 학습·로딩은 [processing/](processing/README.md),
+ALD/CVD 실험과 평가는 [notebooks/](notebooks/README.md)를 사용합니다.
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
+사용자가 제공한 구성의 SVG 재현입니다. 그림의 CHOICE 6개는 정상 인덱스를 포함한 저장 출력 수이며,
+양성 변화 유형 비교는 5개입니다. ORDINAL 5개도 정상 인덱스를 포함한 저장 출력 수이고 양성 강도는
+4단계입니다. `DEP. (Used)`는 ALD에 재사용하는 CVD 인코더를 표시합니다.
 
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
+## 설치와 최소 실행
 
-## Add your files
+Python 3.10 이상을 사용합니다. CUDA 환경은 해당 장치에 맞는 PyTorch를 먼저 설치합니다.
 
-- [ ] [Create](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#create-a-file) or [upload](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#upload-a-file) files
-- [ ] [Add files using the command line](https://docs.gitlab.com/topics/git/add_files/#add-files-to-a-git-repository) or push an existing Git repository with the following command:
-
+```bash
+python -m pip install -e '.[test]'
+python examples/synthetic_features.py
+python -m pytest tests/portable -q
 ```
-cd existing_repo
-git remote add origin https://172.30.1.12:9898/KevinO/gevis_revise.git
-git branch -M main
-git push -uf origin main
+
+이 예제는 외부 데이터·가중치·인터넷 없이 **미학습 모델과 합성 입력**으로 동작합니다.
+출력은 `[질문 수, 768]` 특징이며, 정상/이상 판정이나 기존 모델 성능을 의미하지 않습니다.
+E5 질문 인코더를 사용할 때는 `python -m pip install -e '.[text]'`가 필요합니다.
+학습 데이터·제조 가중치·Hugging Face 모델 파일은 배포본에 포함하지 않습니다.
+
+## 노트북으로 시작하기
+
+프로젝트 루트에서 다음을 실행하고 Jupyter에서 `Python (PECVD)` 커널을 선택합니다.
+
+```bash
+python -m pip install -e '.[fdc,notebook]'
+python -m ipykernel install --user --name pecvd --display-name "Python (PECVD)"
 ```
 
-## Integrate with your tools
+기존 가중치를 재사용하려면 [필요 자산과 폴더 배치](checkpoints/README.md)에 따라
+인코더·Fusion·헤드·데이터를 별도로 준비합니다. GitLab에서 코드만 받은 상태에는 가중치가 없습니다.
+E5 오프라인 모델 준비 방법은 [노트북 실행 안내](notebooks/README.md)에 있습니다.
 
-- [ ] [Set up project integrations](https://172.30.1.12:9898/KevinO/gevis_revise/-/settings/integrations)
+| 목적 | 실행 파일 | 기본 동작 |
+|---|---|---|
+| 공정별 시계열 인코더 | `processing/STEP_1_train_patchtst_encoder.ipynb` | 저장된 6개 인코더 재사용. 저장본이 없으면 학습 |
+| 질문·시계열 Fusion | `processing/STEP_2_train_gevis_backbone.ipynb` | STEP 1과의 연결을 검증해 저장 Fusion 재사용. 저장본이 없으면 학습 |
+| CVD/ALD 판별 헤드 | `processing/STEP_3_train_gevis_decision.ipynb` | `ACTION='load'`로 현재 evaluate 저장 헤드 로딩. `'train'`으로 바꿀 때 전처리·학습·평가 |
+| 저장 헤드 추론 | `processing/STEP_3.1_run_gevis_inference.ipynb` | 헤드 로딩 및 인공 입력의 추론 연결 확인. 학습 없음 |
+| GEVIS만 로딩 | `processing/GEVIS_load.ipynb` | 고정 인코더·Fusion 로딩. 다른 STEP 선행 실행 불필요 |
+| CVD 실험 | `notebooks/CVD_evaluate.ipynb` | 기존 CVD 전처리·분할로 헤드 학습·평가 |
+| ALD 실험 | `notebooks/ALD_evaluate.ipynb` | data_complete 전처리와 세 CHOICE 방식의 헤드 학습·평가 |
 
-## Collaborate with your team
+`processing/` 노트북은 첫 코드 셀의 `PROJECT_PATH`에서 프로젝트 경로를 지정합니다.
+기본 `None`은 현재 프로젝트를 찾습니다. 한 번 직접 지정하면 로컬 설정에 저장되어 다음 STEP이
+같은 경로를 사용합니다. 서로 다른 커널에서 실행해도 설정을 공유합니다.
+현재 evaluate 노트북은 첫 셀의 `WORKSPACE_PATH`로 데이터·가중치 폴더를 지정합니다.
+현재 저장소에 자산을 배치했다면 두 설정 모두 `None`으로 두면 됩니다.
 
-- [ ] [Invite team members and collaborators](https://docs.gitlab.com/ee/user/project/members/)
-- [ ] [Create a new merge request](https://docs.gitlab.com/ee/user/project/merge_requests/creating_merge_requests.html)
-- [ ] [Automatically close issues from merge requests](https://docs.gitlab.com/ee/user/project/issues/managing_issues.html#closing-issues-automatically)
-- [ ] [Enable merge request approvals](https://docs.gitlab.com/ee/user/project/merge_requests/approvals/)
-- [ ] [Set auto-merge](https://docs.gitlab.com/user/project/merge_requests/auto_merge/)
+저장본을 이용할 때 STEP 전체 재학습은 필요하지 않습니다. 단, evaluate의 학습 셀은
+실험을 실행하는 셀이므로 저장본 추론만 필요하면 STEP 3의 `ACTION='load'`와 STEP 3.1을 사용합니다.
+STEP 3과 3.1의 `DOMAIN`은 CVD에 `'PECVD'`, ALD에 `'PEALD'`로 맞춥니다.
+같은 CHOICE 방식에 저장본이 여러 개면 `CHECKPOINTS`에 사용할 파일을 지정합니다.
 
-## Test and Deploy
+## 사전학습 가중치로 특징 추출
 
-Use the built-in continuous integration in GitLab.
+```bash
+python examples/extract_features.py --manifest /models/encoder/encoder_manifest.json --backbone /models/fusion/gevis_backbone.pt --data-path /inputs/pair.npz --step DEP. --center sensor_A --device cpu
+```
 
-- [ ] [Get started with GitLab CI/CD](https://docs.gitlab.com/ee/ci/quick_start/)
-- [ ] [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/ee/user/application_security/sast/)
-- [ ] [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/ee/topics/autodevops/requirements.html)
-- [ ] [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/ee/user/clusters/agent/)
-- [ ] [Set up protected environments](https://docs.gitlab.com/ee/ci/environments/protected_environments.html)
+`pair.npz`에는 TRAIN 정규화를 적용한 `current`, `reference` 배열 `[time,sensors]`와
+동일 순서의 문자열 `sensor_names`가 필요합니다. 파일 경로는 Windows/Linux 절대·상대 경로를
+지원합니다. `--text-model-path`로 E5 로컬 모델 디렉터리를 지정할 수 있습니다.
+오프라인 환경에서는 모델 파일을 미리 준비하고 `HF_HUB_OFFLINE=1`을 설정합니다.
 
-***
+독립 로더는 기존 **원본 시점 다중 스케일 인코더와 v10 융합 가중치**를 지원합니다.
+다른 과거 구현을 임의로 변환하거나 일부 가중치만 로드하지 않습니다.
+인코더 목록과 파일의 체크섬, 목록과 융합 가중치의 연결, 상태 사전의 차원을 검사합니다.
+경로 변경은 가중치 수정이나 재학습을 발생시키지 않습니다.
 
-# Editing this README
+## 새 데이터로 학습
 
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
+```bash
+python examples/train_encoder.py --data-path /inputs/windows.npz --output /models/new_numeric_encoder.pt --epochs 40
+```
 
-## Suggestions for a good README
+NPZ의 `train`, `validation`은 `[windows,time,sensors]` 배열입니다. 사용자가 먼저 Run을
+독립적으로 분할하고 TRAIN에서만 정규화를 적합해야 합니다. Test는 학습에 입력하지 않습니다.
+기존 다중 스케일 가림 복원 자기지도 목적함수를 사용하지만, 이 간결한 새 데이터용 학습 루프가
+과거 표본 추출·학습률 조절·전체 실험을 재현한다고 주장하지 않습니다. **이 명령은 숫자 인코더만
+학습하며 융합은 학습하지 않습니다.** 저장 파일은 별도 `gevis.numeric_ssl.portable.v1` 형식입니다.
 
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
+기존 전체 숫자 인코더·융합 학습 과정은 선택 배포본에서 Python 프로그램으로 보존했습니다.
+Jupyter 없이 실행할 수 있으며, 기존 데이터·설정·재사용/덮어쓰기 보호 규칙을 사용합니다.
 
-## Name
-Choose a self-explaining name for your project.
+```bash
+python examples/train_historical.py --component encoder --root /workspace
+python examples/train_historical.py --component fusion --root /workspace
+```
 
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
+## CVD / ALD FDC 예제 (선택 배포)
 
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
+노트북으로 실행한다면 FDC 배포본의 `notebooks/README.md`와
+[작업 폴더 구성](checkpoints/README.md)을 먼저 확인하세요. 첫 셀의 `WORKSPACE_PATH`로
+코드 저장소와 데이터·가중치 위치를 분리할 수 있습니다.
 
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
+`heads/`는 핵심 모델과 분리되어 있으며 `GEVIS_Model`이 가져오지 않습니다.
+기존 헤드의 소스 해시 호환성을 위해 `src/pecvd`의 보수적인 의존성 집합을 별도로 유지합니다.
+FDC 예제는 `--with-fdc`로 만든 소스 배포본과 `pip install -e '.[fdc]'`가 필요합니다.
+기존 가중치·설정·CVD 입력 구간 캐시는 별도로 준비해야 합니다.
 
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
+```bash
+python examples/run_peald.py --root /workspace --action train
+python examples/run_pecvd.py --root /workspace --action train
+```
 
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
+명령을 명시적으로 실행할 때만 헤드를 학습합니다. 인코더와 융합은 고정합니다.
+외부 데이터 경로는 기존 전처리를 바꾸지 않는 별도 작업 폴더로 연결합니다.
 
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
+```bash
+python examples/run_peald.py --root /workspace --action train --data-path /datasets/data_complete --workspace /new-experiment
+```
 
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
+동일 드라이브에서는 수정하지 않을 입력·가중치를 하드 링크로 연결합니다. 다른 드라이브에서 실패하면
+`--copy-assets`를 명시해 복사할 수 있습니다. 원본 입력과 연결된 자산을 직접 수정하지 마세요.
+새 헤드·캐시는 새 작업 폴더에 생성됩니다. CVD는 원래 CSV의 체크섬과 저장된 입력 구간·Run 분할이
+일치해야 하므로 임의의 새 CSV를 경로만 바꿔 넣을 수 없습니다.
 
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
+기존 헤드 추론은 `--action predict --checkpoint ... --window ... --metadata ...`로 실행합니다.
+NPZ에는 `current`, `sensor_columns`, JSON에는 `step`, `recipe_key`, `loop_key`,
+`offset_samples`, 독립적인 `lineage_id`가 필요합니다. 기본 입력은 원시 센서 값이며,
+이미 정규화했다면 `--standardized`를 지정합니다. `--allow-legacy-cvd`는 명시적 호환 로딩이며,
+과거 결과와의 완전한 동일성을 보증하지 않습니다.
+기존 ALD 저장본에서 공용 헤드 모듈 해시만 달라졌다면 `--allow-legacy-ald`를 명시할 수
+있습니다. ALD 전처리/입력 저장 코드 차이는 이 옵션으로 허용하지 않습니다.
 
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
+ALD 입력은 `data_complete`만 사용합니다. 전달용 Test·merge_peald·외부 process.json은 사용하지
+않습니다. **기존 CVD로 학습한 DEP 인코더를 모든 지원 ALD 공정 경로에 재사용**합니다.
+DEP만 ALD 입력으로 선택한다는 뜻이 아니며, DEP가 최적이라는 비교 검증도 별도입니다.
 
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
+## 실제 PECVD 인코더 학습 기록
 
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
+![공정별 가림 복원 오차](docs/training/pecvd_reconstruction.png)
 
-## License
-For open source projects, say how it is licensed.
+6개 공정 체크포인트의 학습·검증 복원 오차와 실제 가중치 선택 시점입니다.
+재학습하거나 예시 수치를 넣지 않았습니다. 학습 목적함수, DEP 상세 그래프, Test 집계와
+해석 조건은 [실제 학습 기록](docs/training/README.md)에 있습니다.
 
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+## 이상 주입과 평가
+
+![정상 범위와 변화 유형](docs/injection_types/types.svg)
+
+TRAIN MIN/MAX 참조 범위와 합성 변화는 설비 고장 정답이 아닙니다.
+현재 과제는 **정상 참조 기반 시계열 변화 탐지이며, 합성 이상을 이용한 지도학습**입니다.
+고정 GEVIS 특징으로 변화 여부·유형·강도를 예측합니다. 합성 이상은 학습·평가 정답 생성 방식입니다.
+정상 원본이라는 데이터셋 전제 아래 연속 센서에 수준·변동성·기울기·국소 변화·지연을 생성합니다.
+Softmax / Grouped Softmax / 독립 Sigmoid를 비교하되, 여러 Sigmoid 점수가 높다고 복합 고장이
+입증되는 것은 아닙니다. [전처리와 라벨](docs/preprocessing.md),
+[판별 및 성능 해석](docs/evaluation.md)을 참고하세요.
+
+실험 수치는 체크포인트·Run 분할·센서 수·평가 조건과 묶어 기록합니다. 현재 리팩터링의
+검증 범위와 미검증 항목은 [검증 기록](docs/verification.md)에 구분했습니다.
+
+## 폴더 구성
+
+```text
+GEVIS_Model/             # 헤드와 독립인 수치·융합·추론·학습 모듈
+heads/                  # 선택적 FDC 명령·기존 학습 Python 프로그램
+examples/               # 합성 실행·숫자 학습·특징 추출·FDC 명령
+processing/             # STEP 1·2·3·3.1, GEVIS 로딩, 공통 경로 설정
+notebooks/              # CVD / ALD 전처리·헤드 학습·평가
+configs/                # 환경에 맞게 지정하는 경로 예시와 도메인 기본값
+checkpoints/README.md   # 필요한 비공개 가중치 안내
+docs/                   # 구조·전처리·평가·검증·정리 근거
+tests/portable/         # 비공개 데이터 없이 실행하는 테스트
+src/pecvd/              # --with-fdc 배포에서만 포함되는 기존 호환 구현
+```
+
+## GitLab 배포
+
+```bash
+python scripts/build_gitlab_source.py --output /new-path/gevis-core
+python scripts/build_gitlab_source.py --output /new-path/gevis-fdc --with-fdc
+```
+
+첫 명령은 독립 인코더만, 두 번째는 CVD/ALD 예제까지 포함합니다. 목적지는 새 디렉터리여야 합니다.
+실제 데이터·가중치·캐시·Git 이력·개인 설정은 복사하지 않고 평가 노트북 출력도 제거합니다.
+FDC 배포본에는 `processing/`의 실행용 노트북과 공통 경로 모듈도 포함합니다.
+로컬 복구 자료·원본 보관 사본·개인 경로 설정은 포함하지 않습니다.
+**현재 작업 폴더에서 `git add .`로 전체를 올리지 말고 생성한 소스 배포본을 검토하세요.**
+기존 Git 이력은 검사·정제되지 않았습니다. 코드/제조 가중치의 재배포 라이선스는 소유자가 결정해야
+하며, 이 저장소가 임의의 오픈소스 사용 권한을 부여하지는 않습니다.
+
+실제 삭제 결과와 남겨 둔 호환 코드의 이유는 [정리 기록](docs/refactoring.md)에 있습니다.
+
+과거 시행착오와 수정 이유는 [FAILURE_LOG.md](FAILURE_LOG.md)에 통합했습니다.
