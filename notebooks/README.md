@@ -48,3 +48,7 @@ ALD의 `DEP.`는 특징 추출에 사용하는 CVD 인코더 이름입니다. AL
 이전 STEP·GEVIS_load·research 노트북은 정리했습니다. 기존 인코더·융합 학습 코드는
 `src/heads/_legacy_training`에 있으며 `examples/train_historical.py`로 실행할 수 있습니다.
 저장된 노트북 결과는 로컬에서 유지하고, GitLab 배포본에서만 출력을 제거합니다.
+
+## control48 distillation
+
+Run [01_control48.ipynb](distilation/01_control48.ipynb) for Student training, merge, Validation batch selection and fixed-batch Test. Use [02_merged_inference.ipynb](distilation/02_merged_inference.ipynb) for merged inference. See the [distilation guide](distilation/README.md) for installation and prerequisites. Data, original Teacher/Head weights and text models must be supplied locally.

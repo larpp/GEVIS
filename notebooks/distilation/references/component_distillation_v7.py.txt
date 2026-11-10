@@ -1,0 +1,225 @@
+"""Final fixed level/trend, variability, local/delay experiment. No import I/O."""
+from copy import deepcopy
+from dataclasses import replace
+import time
+
+import numpy as np
+import pandas as pd
+
+from . import component_distillation_v3 as v3, component_distillation_v2 as v2
+from . import choice_grouping as grouping, distillation_data as data
+from .online_inference import sync
+
+RECIPE = 'fixed_alternative_three_control48_v7'
+GROUPS = (('Level / trend', (1, 3)), ('Variability', (2,)), ('Local change / delay', (4, 5)))
+GROUP_NAME = 'three_local_delay'
+
+
+def remap(array):
+    result = np.array(array, copy=True)
+    source = np.asarray(array)
+    for target, (_, indices) in enumerate(GROUPS, 1):
+        result[np.isin(source[:, 1], indices), 1] = target
+    return result
+
+
+def compare_predictions(truth, prediction, *, model='control48', target=.96):
+    """Original-five decisions remapped only; keep unknown truth and gate errors."""
+    if not np.isfinite(target) or not 0 < target <= 1:
+        raise ValueError('Finite target in (0,1] required')
+    if tuple(grouping.fa.ANSWER_CRITERIA['CHOICE'][1:]) != grouping.SOURCE_OPTIONS:
+        raise ValueError('Exact original-five CHOICE vocabulary ordering required')
+    truth, prediction = grouping._arrays(truth, prediction)
+    original = data.metrics(truth, prediction, model)[0].set_index('answer_type')
+    t, p = remap(truth), remap(prediction)
+    table, _ = data.metrics(t, p, model)
+    f1 = table.set_index('answer_type').f1
+    missing = [grouping.SOURCE_OPTIONS[i-1] for i in range(1,6) if not (truth[:,1] == i).any()]
+    missing_ordinal = [i for i in range(1,5) if not (truth[:,2] == i).any()]
+    complete = not missing and not missing_ordinal and set(truth[:,0]) == {0,1}
+    summary = pd.DataFrame([dict(model=model, grouping=GROUP_NAME, choice_classes=3,
+        boolean_f1=float(f1['BOOLEAN']), choice_f1=float(f1['CHOICE']), ordinal_f1=float(f1['ORDINAL']),
+        original_five_choice_f1=float(original.loc['CHOICE','f1']), coverage_complete=bool(complete),
+        missing_source_families=', '.join(missing), missing_ordinal_classes=', '.join(map(str,missing_ordinal)),
+        recovered_within_group_errors=int(((truth[:,1]>0)&(prediction[:,1]>0)&
+            (truth[:,1]!=prediction[:,1])&(t[:,1]==p[:,1])).sum()),
+        quality_pass=bool(complete and np.isfinite(f1).all() and f1.ge(target).all()), target_f1=target)])
+    scored = (t[:,1]>=0)&((t[:,0]==1)|(p[:,0]==1))
+    matrix = np.zeros((4,4), dtype=np.int64)
+    np.add.at(matrix,(t[scored,1],p[scored,1]),1)
+    labels = ['Normal / BOOLEAN No']+[name for name,_ in GROUPS]
+    support = []
+    for i,(name,indices) in enumerate(GROUPS,1):
+        known = t[:,1]>=0
+        actual, predicted = (t[:,1]==i)&known, (p[:,1]==i)&known
+        tp = int((actual&predicted).sum());fp = int((~actual&predicted).sum());fn = int((actual&~predicted).sum())
+        support.append(dict(group_answer=name,source_answers=' + '.join(grouping.SOURCE_OPTIONS[j-1] for j in indices),
+                            support=int(actual.sum()),tp=tp,fp=fp,fn=fn,f1=2*tp/(2*tp+fp+fn) if tp+fp+fn else np.nan))
+    mapping = pd.DataFrame([dict(original_class=source,original_answer=grouping.SOURCE_OPTIONS[source-1],
+                                 group_class=i,group_answer=name) for i,(name,indices) in enumerate(GROUPS,1) for source in indices])
+    return dict(summary=summary,metrics=table,per_class=pd.DataFrame(support),
+                confusion=pd.DataFrame(matrix,index=labels,columns=labels),mapping=mapping,
+                method='fixed original argmax remapping; no reduced-head fitting or probability pooling')
+
+
+def remap_reply(reply):
+    reply = deepcopy(reply)
+    lookup = {source:(i,name) for i,(name,indices) in enumerate(GROUPS,1) for source in indices}
+    for answer in reply.get('answers',[]):
+        if answer['answer_type']!='CHOICE' or not answer.get('evaluated',False):
+            continue
+        original = answer['prediction']
+        if original not in lookup:
+            raise ValueError('Original positive five-class answer required')
+        target,name = lookup[original]
+        answer.update(original_five_prediction=original,original_five_answer=answer.get('answer'),
+                      original_five_probabilities=answer.get('probabilities'),prediction=target,answer=name,
+                      probabilities=None,probability_scope='argmax_regrouping_no_group_probabilities')
+    reply.update(grouping=GROUP_NAME,choice_classes=3)
+    return reply
+
+
+class Session:
+    def __init__(self,runtime,*,encoder,head,center_batch_size=None):
+        self.session = v2.BatchedSession(runtime,encoder=encoder,head=head,
+            center_batch_size=runtime.config.center_batch_size if center_batch_size is None else center_batch_size)
+
+    def process_window(self,**request):
+        reply = self.session.process_window(**request)
+        start = time.perf_counter()
+        reply = remap_reply(reply)
+        elapsed = 1000*(time.perf_counter()-start)
+        reply['timings']['regrouping_ms'] = elapsed
+        reply['timings']['request_ms'] += elapsed
+        return reply
+
+
+class Experiment(v3.Experiment):
+    """Reuse original width48 KD; final vocabulary fixed before evaluation."""
+    def __init__(self,source,*,benchmark_windows=16,repeats=5,warmup=2):
+        if not isinstance(source,v3.Experiment):
+            raise ValueError('Current selected control48 source required')
+        data.require_current(source)
+        if 'control48' not in source.candidates:
+            raise ValueError('Fit/select original control48 before V7')
+        encoder,head = source.candidates['control48']
+        if encoder.width!=48 or head is not source.original_head or source.records['control48']['objective']!='legacy':
+            raise ValueError('Original width48 KD and frozen original head required')
+        # Timing budgets alone may change; training/sampling configuration stays bound.
+        config = replace(source.config,benchmark_windows=benchmark_windows,repeats=repeats,warmup=warmup)
+        super().__init__(source.root,source.teacher,config,source.progress)
+        self.datasets = {k:v for k,v in source.datasets.items() if k in ('train','validation')}
+        self.candidates = {'control48':(deepcopy(encoder).requires_grad_(False).eval(),self.original_head)}
+        self.students = {'control48':self.candidates['control48'][0]}
+        self.records = {'control48':dict(source.records['control48'])}
+        self.prior_test_opened = bool(source._test_open or source._test_done or getattr(source,'prior_test_opened',False))
+        self._quality = self._timing = None
+
+    def fit_candidate(self,*args,**kwargs):
+        raise ValueError('V7 reuses the selected original KD; no extra fitting')
+
+    def fit_gevis(self):
+        raise ValueError('Fit only the original control48 before constructing V7')
+
+    def fit_head(self):
+        raise ValueError('V7 retains original head without refitting')
+
+    def variants(self):
+        return {'baseline':(None,self.original_head),**self.candidates}
+
+    def _report(self,split):
+        summaries,metrics,support,confusion = [],[],[],{}
+        for name,(encoder,head) in self.variants().items():
+            truth,prediction,_,_ = self._score(encoder,head,self.dataset(split))
+            report = compare_predictions(truth,prediction,model=name,target=self.config.target_f1)
+            summaries.append(report['summary']);metrics.append(report['metrics'])
+            support.append(report['per_class'].assign(model=name));confusion[name] = report['confusion']
+        self.assert_preserved()
+        return dict(summary=pd.concat(summaries,ignore_index=True),metrics=pd.concat(metrics,ignore_index=True),
+                    per_class=pd.concat(support,ignore_index=True),confusion=confusion,mapping=report['mapping'],
+                    split=split,prior_test_opened=self.prior_test_opened,method=report['method'])
+
+    def validation_report(self):
+        self._closed()
+        self._quality = self._timing = None
+        report = self._report('validation')
+        self._quality = report['summary'].copy()
+        return report
+
+    def parity_report(self,windows=2,atol=1e-5,rtol=1e-4):
+        self._timing = None
+        return super().parity_report(windows=windows,atol=atol,rtol=rtol)
+
+    def _benchmark(self,split):
+        if not self._batched_parity_passed:
+            raise ValueError('Pass current original-five runtime parity before timing')
+        runtime = self.teacher.runtime
+        candidates = [r['case'] for r in self.dataset(split)['rows']]
+        examples = data.sample_cases(candidates,self.config.benchmark_windows,100000,self.config.seed+9)
+        variants = self.variants();names = tuple(variants);records = []
+        for index,c in enumerate(examples):
+            meta = runtime.encoders[c['step']][1]
+            # Same source-bound inverse normalization as the established benchmark.
+            raw = (v3.d.case_current(c)*np.asarray(meta['std'])+np.asarray(meta['mean'])).astype(np.float32)
+            request = dict(current=raw,step=c['step'],recipe_key=c['recipe_key'],loop_key=c['loop_key'],
+                           offset_samples=c['offset_samples'],lineage_id=c['lineage_id'],sensor_columns=c['sensor_columns'])
+            sessions = {name:Session(runtime,encoder=encoder,head=head) for name,(encoder,head) in variants.items()}
+            for repeat in range(self.config.warmup+self.config.repeats):
+                offset = (index+repeat)%len(names)
+                for name in names[offset:]+names[:offset]:
+                    sync(runtime.module);started = time.perf_counter()
+                    reply = sessions[name].process_window(**request)
+                    sync(runtime.module);wall_ms = 1000*(time.perf_counter()-started)
+                    if reply['status']!='OK':
+                        raise ValueError('Unsupported complete native timing input')
+                    if repeat>=self.config.warmup:
+                        records.append(dict(model=name,window=index,repeat=repeat,wall_ms=wall_ms,
+                            evaluated_answers=reply['evaluated_answers'],sensors=len(c['sensor_columns']),**reply['timings']))
+        frame = pd.DataFrame(records)
+        if frame.empty:
+            raise ValueError('No supported timing requests')
+        summary = pd.DataFrame([dict(model=name,mean_ms=g.wall_ms.mean(),p50_ms=np.percentile(g.wall_ms,50),
+            p95_ms=np.percentile(g.wall_ms,95),requests=len(g),timed_inputs=g.window.nunique())
+            for name,g in frame.groupby('model',sort=False)])
+        phases = ['normalization_ms','encoder_ms','fusion_ms','head_ms','regrouping_ms','request_ms']
+        self.assert_preserved()
+        return dict(summary=summary,requests=frame,stage_means=frame.groupby('model',sort=False)[phases].mean().reset_index(),
+                    split=split,scope='outer request wall time includes original model, conditional answering and fixed argmax remapping')
+
+    def benchmark_validation(self):
+        self._closed();self._timing = None
+        if self._quality is None:
+            raise ValueError('Compute Validation quality before timing')
+        report = self._benchmark('validation')
+        self._timing = report['summary'].copy()
+        return report
+
+    def freeze_selection(self):
+        self._closed()
+        if not self._batched_parity_passed or self._quality is None or self._timing is None:
+            raise ValueError('Current Validation quality/parity/timing required')
+        table = self._quality.merge(self._timing,on='model',validate='one_to_one')
+        if len(table)!=2 or set(table.model)!={'baseline','control48'} or not np.isfinite(table.mean_ms).all():
+            raise ValueError('Complete finite Teacher/control timing required')
+        table['latency_pass'] = table.mean_ms.le(50.)
+        table['joint_pass'] = table.quality_pass & table.latency_pass
+        self.validation_joint_qualified = bool(table.loc[table.model.eq('control48'),'joint_pass'].iloc[0])
+        self.selected_name = 'control48'
+        self._selection_frozen = True
+        return dict(model=self.selected_name,grouping=GROUP_NAME,comparison=table,
+                    status='VALIDATION_TARGET_MET' if self.validation_joint_qualified else 'VALIDATION_TARGET_NOT_MET',
+                    scope='fixed model and vocabulary; no architecture/group search or Test-based reselection')
+
+    def evaluate_test(self):
+        if not self._selection_frozen:
+            raise ValueError('Freeze Validation assessment before Test')
+        if self._test_done:
+            raise ValueError('Test already evaluated; no reselection')
+        report = self._report('test');self._test_done = True
+        report.update(scope='post-hoc vocabulary chosen using prior evidence; reused Test is development, not independent confirmation')
+        return report
+
+    def benchmark(self):
+        if not self._test_done:
+            raise ValueError('Freeze and evaluate Test before Test timing')
+        return self._benchmark('test')

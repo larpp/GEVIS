@@ -1,0 +1,345 @@
+"""User-run component KD: original/compact GEVIS crossed with original/small MLP.
+
+Compact GEVIS preserves the8D+10 feature contract: patch temporal Transformer,
+fixed Teacher text queries, actual cross-attention, and exact boundary tail.
+No model/data execution occurs on import. No Teacher refitting or overwriting.
+"""
+from dataclasses import dataclass,asdict
+from pathlib import Path
+from types import SimpleNamespace
+import math,time,json,uuid
+
+import numpy as np
+import pandas as pd
+import torch
+from torch import nn
+from torch.nn import functional as F
+
+from . import distillation_data as data,decision_training as d,fusion_answers as fa,current_input as current
+from .online_inference import sync
+
+RECIPE='gevis_and_head_component_kd_v1'
+INPUT_MODE=d.INPUT_MODE
+_key=d._key
+_window_features=d._window_features
+
+
+@dataclass(frozen=True)
+class Config(data.Config):
+    encoder_width:int=48
+    encoder_layers:int=2
+    head_width:int=32
+    feature_weight:float=1.
+
+    def validate(self):
+        super().validate()
+        if self.encoder_width<8 or self.encoder_width%4 or self.encoder_layers<1 or self.head_width<1:
+            raise ValueError('Positive architecture sizes; encoder width must be divisible by four')
+        if not math.isfinite(self.feature_weight) or self.feature_weight<=0:raise ValueError('Positive feature matching weight required')
+
+
+def boundary_tail(values,record,centers,names,offset,cadence):
+    lower=np.asarray(record['lower']);upper=np.asarray(record['upper']);span=upper-lower
+    scale=np.maximum(span,1.);below=np.maximum(lower-values,0.)/scale;above=np.maximum(values-upper,0.)/scale
+    rows=[]
+    for name in centers:
+        sid=names.index(name);lo=below[:,sid];hi=above[:,sid]
+        rows.append([float(np.mean(lo>0)),float(np.mean(hi>0)),float(lo.mean()),float(hi.mean()),
+            float(lo.max()),float(hi.max()),float(span[:,sid].mean()),float(span[:,sid].max()),
+            math.log1p(offset*cadence),math.log1p(len(values)*cadence)])
+    return torch.tensor(rows,dtype=torch.float32)
+
+
+class GevisStudent(nn.Module):
+    """Channel-independent patch Transformer and small text/numeric Fusion."""
+    def __init__(self,question_vectors,patch_length,width=48,layers=2):
+        super().__init__()
+        if question_vectors.ndim!=2 or question_vectors.shape[0]!=3 or question_vectors.shape[1]<1 or not torch.isfinite(question_vectors).all():
+            raise ValueError('Three finite Teacher text queries required')
+        if patch_length<1 or width<8 or width%4:raise ValueError('Invalid patch/attention shape')
+        self.width=width;self.patch_length=int(patch_length);self.dimension=int(question_vectors.shape[1])
+        self.register_buffer('question_vectors',question_vectors.detach().float().cpu().clone())
+        self.patch=nn.Linear(5*self.patch_length,width)
+        block=nn.TransformerEncoderLayer(width,4,dim_feedforward=2*width,dropout=0.,
+            activation='gelu',batch_first=True,norm_first=True)
+        self.temporal=nn.TransformerEncoder(block,layers,enable_nested_tensor=False)
+        self.sensor_position=nn.Linear(1,width)
+        self.boundary=nn.Embedding(2,width)
+        self.text=nn.Linear(self.dimension,width)
+        self.query_norm=nn.LayerNorm(width);self.key_norm=nn.LayerNorm(width)
+        self.cross=nn.MultiheadAttention(width,4,dropout=0.,batch_first=True)
+        self.answer_norm=nn.LayerNorm(width)
+        self.fused_out=nn.Linear(width,self.dimension)
+        self.numeric_out=nn.Linear(width,self.dimension)
+
+    def encode(self,x):
+        channels,_,length=x.shape
+        if length%self.patch_length:raise ValueError('Native window must contain complete source-sized patches')
+        patches=x.unfold(-1,self.patch_length,self.patch_length).permute(0,2,1,3)
+        z=self.patch(patches.reshape(channels,-1,5*self.patch_length))
+        positions=torch.arange(z.shape[1],device=z.device,dtype=z.dtype)[:,None]
+        frequencies=torch.exp(torch.arange(0,self.width,2,device=z.device,dtype=z.dtype)*(-math.log(10000.)/self.width))
+        pe=torch.zeros(z.shape[1],self.width,device=z.device,dtype=z.dtype)
+        pe[:,0::2]=torch.sin(positions*frequencies);pe[:,1::2]=torch.cos(positions*frequencies)
+        z=self.temporal(z+pe[None])
+        sensor=torch.linspace(-1,1,channels,device=z.device,dtype=z.dtype)[:,None]
+        return z+self.sensor_position(sensor)[:,None]
+
+    def features(self,state,centers,tail,kinds=fa.KINDS):
+        channels,patches,_=state.shape;n=len(centers);k=len(kinds)
+        ids=centers.repeat_interleave(k)
+        kind_ids=torch.tensor([fa.KINDS.index(kind) for kind in kinds],device=state.device).repeat(n)
+        query=self.question_vectors[kind_ids];parts=[]
+        for bound in range(2):
+            grid=self.key_norm(state+self.boundary.weight[bound]);local=grid.mean(1)[ids]
+            q=self.query_norm(self.text(query)+local)
+            answer,attention=self.cross(q[None],grid.reshape(1,-1,self.width),grid.reshape(1,-1,self.width),need_weights=True)
+            weights=attention[0].reshape(n*k,channels,patches)[torch.arange(n*k,device=state.device),ids]
+            attended=(grid[ids]*weights[...,None]).sum(1)/weights.sum(-1,keepdim=True).clamp_min(1e-8)
+            fused=self.fused_out(self.answer_norm(answer[0]+q))
+            parts.append(torch.cat([fused,query,self.numeric_out(local),self.numeric_out(attended)],-1))
+        exact_tail=tail.to(state.device).repeat_interleave(k,dim=0)
+        return torch.cat(parts+[exact_tail],-1).reshape(n,k,8*self.dimension+10)
+
+    def forward(self,x,centers,tail,kinds=fa.KINDS):
+        return self.features(self.encode(x),centers,tail,kinds)
+
+
+def head_logits(head,features):
+    return {kind:head(features[:,j],kind) for j,kind in enumerate(fa.KINDS)}
+
+
+class Experiment(data.DataStudy):
+    def __init__(self,root,teacher,config=Config(),progress=print):
+        super().__init__(root,teacher,config,progress)
+        from pecvd.gevis_backbone import ANSWER_TYPES
+        source=teacher.runtime.module.GEVIS_MODEL;device=next(source.parameters()).device
+        with torch.no_grad():
+            ids=torch.tensor([ANSWER_TYPES[k] for k in fa.KINDS],device=device)
+            self.queries=(source._text([fa.QUESTIONS[k] for k in fa.KINDS],device)+source.type_emb(ids)).detach().float().cpu()
+        expected=8*self.queries.shape[1]+10
+        self.original_head=teacher.runtime.module.FUSION_ANSWER_HEAD.requires_grad_(False).eval()
+        if self.original_head.feature_mean.numel()!=expected:raise ValueError('Teacher8D+10 contract differs')
+        patches={int(e.patch_len) for e,m in teacher.runtime.encoders.values()}
+        if len(patches)!=1:raise ValueError('This ALD experiment requires one selected source patch contract')
+        self.patch_length=patches.pop()
+
+    def _closed(self):
+        if self._test_open or self._test_done:raise ValueError('Fitting closed after Test opens')
+
+    @torch.no_grad()
+    def _score(self,encoder,head,split):
+        truth=[];prediction=[];loss=0.;device=self.teacher.runtime.module.DEVICE
+        if encoder is not None:encoder.eval()
+        head.eval()
+        for row in split['rows']:
+            features=row['features'].to(device) if encoder is None else encoder(row['x'].to(device),row['centers'].to(device),row['tail'].to(device))
+            logits=head_logits(head,features)
+            loss+=float(data.kd_loss(logits,row['y'].to(device),{k:v.to(device) for k,v in row['teacher'].items()},
+                data.replace(self.config,alpha=0.)))
+            truth.extend(row['y'].numpy());prediction.extend(data.predictions(logits))
+        truth=np.asarray(truth);prediction=np.asarray(prediction)
+        return truth,prediction,d._scores(truth,prediction),loss/len(split['rows'])
+
+    def _fit(self,which):
+        self._closed();train=self.dataset('train');validation=self.dataset('validation');cfg=self.config
+        device=self.teacher.runtime.module.DEVICE;torch.manual_seed(cfg.seed)
+        labels=np.concatenate([row['y'].numpy() for row in train['rows']]);weights={}
+        heldout=np.concatenate([row['y'].numpy() for row in validation['rows']])
+        if set(heldout[:,0])!={0,1} or any(not (heldout[:,j]>0).any() for j in (1,2)):
+            raise ValueError('Increase Validation sample: both Boolean classes and known positive typed targets required')
+        for j,kind in enumerate(fa.KINDS):
+            y=labels[:,j] if j==0 else labels[(labels[:,0]==1)&(labels[:,j]>0),j]
+            counts=np.bincount(y,minlength=len(fa.ANSWER_CRITERIA[kind]))
+            expected=getattr(self.original_head,'allowed_'+kind).detach().cpu().numpy().copy()
+            if j:expected[0]=False
+            if np.any(expected&(counts==0)):raise ValueError('Increase TRAIN sample: missing '+kind+' class')
+            active=counts>0;w=np.zeros(len(counts),np.float32);w[active]=counts.sum()/(active.sum()*counts[active])
+            weights[kind]=torch.tensor(w,device=device)
+        if which=='encoder':
+            model=GevisStudent(self.queries,self.patch_length,cfg.encoder_width,cfg.encoder_layers).to(device)
+            encoder=model;head=self.original_head
+        else:
+            model=fa.ContextReadout(int(self.original_head.feature_mean.numel()),cfg.head_width)
+            with torch.no_grad():
+                for name,_ in model.named_buffers():getattr(model,name).copy_(getattr(self.original_head,name).cpu())
+            model=model.to(device);encoder=None;head=model
+        optimizer=torch.optim.AdamW(model.parameters(),lr=cfg.learning_rate)
+        best=None;best_key=None;history=[];stale=0;updates=0;started=time.perf_counter()
+        for epoch in range(cfg.epochs):
+            if history and time.perf_counter()-started>=cfg.max_seconds:break
+            model.train();order=np.random.default_rng(cfg.seed+epoch).permutation(len(train['rows']));total=0.
+            for start in range(0,len(order),cfg.batch_cases):
+                batch=order[start:start+cfg.batch_cases];optimizer.zero_grad(set_to_none=True)
+                for idx in batch:
+                    row=train['rows'][idx];target=row['features'].to(device)
+                    features=target if encoder is None else encoder(row['x'].to(device),row['centers'].to(device),row['tail'].to(device))
+                    loss=data.kd_loss(head_logits(head,features),row['y'].to(device),
+                        {k:v.to(device) for k,v in row['teacher'].items()},cfg,weights)
+                    if encoder is not None:
+                        scale=self.original_head.feature_scale[:-10].clamp_min(1e-5)
+                        loss=loss+cfg.feature_weight*F.smooth_l1_loss(features[...,:-10]/scale,target[...,:-10]/scale)
+                    if not torch.isfinite(loss):raise ValueError('Nonfinite component loss')
+                    (loss/len(batch)).backward();total+=float(loss.detach())/len(batch)
+                torch.nn.utils.clip_grad_norm_(model.parameters(),1.);optimizer.step();updates+=1
+            model.eval();_,_,score,val_loss=self._score(encoder,head,validation)
+            key=d.selection_key(score,val_loss)
+            history.append(dict(epoch=epoch+1,train_loss=total/max(1,math.ceil(len(order)/cfg.batch_cases)),
+                **{k+'_f1':v for k,v in d.typed_f1(score).items()},normal_fpr=score['normal_false_positive_rate']))
+            if best_key is None or key>best_key:
+                best_key=key;best={k:v.detach().cpu().clone() for k,v in model.state_dict().items()};selected=epoch+1;selected_updates=updates;stale=0
+            else:stale+=1
+            if self.progress:self.progress(f'{which} KD epoch {epoch+1}: Validation {d.typed_f1(score)}',flush=True)
+            if stale>=cfg.patience:break
+        model.load_state_dict(best);model.requires_grad_(False).eval();self.students[which]=model
+        self.fits[which]=dict(selected_epoch=selected,optimizer_updates=selected_updates,selection_split='validation')
+        self.assert_preserved();return pd.DataFrame(history)
+
+    def fit_gevis(self):return self._fit('encoder')
+    def fit_head(self):return self._fit('head')
+
+    def variants(self):
+        if not {'encoder','head'}<=set(self.students):raise ValueError('Fit/select both components first')
+        return {'baseline':(None,self.original_head),'gevis_only':(self.students['encoder'],self.original_head),
+            'head_only':(None,self.students['head']),'both':(self.students['encoder'],self.students['head'])}
+
+    def evaluate_test(self):
+        variants=self.variants()
+        if self._test_done:raise ValueError('Test already evaluated; no tuning on Test')
+        test=self.dataset('test');tables=[];details={}
+        for name,(encoder,head) in variants.items():
+            truth,prediction,_,_=self._score(encoder,head,test)
+            tables.append(data.metrics(truth,prediction,name)[0]);details[name]=dict(truth=truth,prediction=prediction)
+        self._test_done=True;self.assert_preserved()
+        return dict(metrics=pd.concat(tables,ignore_index=True),details=details,
+            coverage=pd.DataFrame([v['coverage'] for v in self.datasets.values()]),
+            scope='bounded support-filtered development reevaluation; both=independent composition')
+
+    def benchmark(self):
+        if not self._test_done:raise ValueError('Freeze selection and Test before benchmarking')
+        candidates=[r['case'] for r in self.datasets['test']['rows']]
+        examples=data.sample_cases(candidates,self.config.benchmark_windows,100000,self.config.seed+9)
+        runtime=self.teacher.runtime;records=[]
+        for index,c in enumerate(examples):
+            meta=runtime.encoders[c['step']][1]
+            raw=(d.case_current(c)*np.asarray(meta['std'])+np.asarray(meta['mean'])).astype(np.float32)
+            request=dict(current=raw,step=c['step'],recipe_key=c['recipe_key'],loop_key=c['loop_key'],
+                offset_samples=c['offset_samples'],lineage_id=c['lineage_id'],sensor_columns=c['sensor_columns'])
+            for name,(encoder,head) in self.variants().items():
+                session=ComponentSession(runtime,encoder=encoder,head=head,center_batch_size=runtime.config.center_batch_size)
+                for repeat in range(self.config.warmup+self.config.repeats):
+                    sync(runtime.module);start=time.perf_counter();reply=session.process_window(**request);sync(runtime.module)
+                    wall_ms=1000*(time.perf_counter()-start)
+                    if reply['status']!='OK':raise ValueError('Timing input unsupported')
+                    if repeat>=self.config.warmup:
+                        records.append(dict(model=name,window=index,step=c['step'],repeat=repeat,sensors=len(c['sensor_columns']),
+                            wall_ms=wall_ms,evaluated_answers=reply['evaluated_answers'],**reply['timings']))
+        frame=pd.DataFrame(records);summary=[]
+        for name,group in frame.groupby('model',sort=False):
+            values=group.wall_ms.to_numpy()
+            summary.append(dict(model=name,mean_ms=values.mean(),p50_ms=np.percentile(values,50),p95_ms=np.percentile(values,95),
+                mean_below_50ms=bool(values.mean()<=50),requests=len(group),native_steps=group.step.nunique(),
+                min_sensors=group.sensors.min(),max_sensors=group.sensors.max()))
+        self.assert_preserved();return dict(summary=pd.DataFrame(summary),requests=frame,
+            stage_means=frame.groupby('model',sort=False)[['normalization_ms','reference_ms','encoder_ms','fusion_ms','head_ms','request_ms']].mean().reset_index())
+
+    def save_components(self):
+        if not self._test_done:raise ValueError('Evaluate selected components before explicit saving')
+        self.assert_preserved();folder=self.root/'artifacts/gevis_component_distillation'/uuid.uuid4().hex
+        folder.mkdir(parents=True,exist_ok=False)
+        state={which+'.'+key:value.detach().cpu().clone() for which,model in self.students.items() for key,value in model.state_dict().items()}
+        payload=dict(schema=RECIPE,code=data.code_identity(self.teacher.runtime),
+            helper_sha256=d.p.digest(__file__),teacher_sha256=self.teacher_sha,config=asdict(self.config),patch_length=self.patch_length,
+            state=state,training=self.fits,scope='experimental selected ALD components; not a deployment replacement',
+            lineages={k:sorted(v['lineages']) for k,v in self.datasets.items()})
+        payload['content_sha256']=current.payload_digest(payload)
+        path=folder/'components.pt';torch.save(payload,path);return path
+
+
+class ComponentSession:
+    """Same conditional native window path for all four component combinations."""
+    def __init__(self,runtime,*,encoder=None,head=None,center_batch_size=8):
+        self.decision=data.decision_for(runtime)
+        self.decision.Session(runtime,center_batch_size=center_batch_size)
+        self.runtime=runtime;self.encoder=encoder;self.head=head if head is not None else runtime.module.FUSION_ANSWER_HEAD
+        self.metadata={s:dict(meta) for s,(e,meta) in runtime.encoders.items()};self.center_batch_size=center_batch_size
+
+    @torch.no_grad()
+    def process_window(self,*,current,step,recipe_key=None,loop_key='',offset_samples=0,
+                       run_id=None,lineage_id=None,centers=None,sensor_columns=None,standardized=False):
+        from .online_inference import sync
+        runtime=self.runtime;module=runtime.module;sync(module);started=time.perf_counter()
+        timings=dict(normalization_ms=0.,reference_ms=0.,encoder_ms=0.,fusion_ms=0.,head_ms=0.)
+        reply=dict(status='NOT_EVALUATED',reason='unsupported_step',step=step,answers=[],input_mode=INPUT_MODE,reference_count=0)
+        def finish():
+            sync(module);timings['request_ms']=1000*(time.perf_counter()-started);reply['timings']=timings;return reply
+        if step not in self.metadata:return finish()
+        meta=self.metadata[step];names=list(meta['sensor_columns'])
+        observed=names if sensor_columns is None else list(sensor_columns)
+        if observed!=names:reply['reason']='incomplete_observed_sensor_grid';return finish()
+        chosen=data.target_centers(meta,centers)
+        if not isinstance(lineage_id,str) or not lineage_id:
+            reply['reason']='source_lineage_required';return finish()
+        if lineage_id in set(runtime.references['basis_lineages']):
+            reply['reason']='reference_basis_lineage_not_independent';return finish()
+        key=_key(step,recipe_key,loop_key,offset_samples)
+        record=runtime.reference_bank.get(key)
+        if record is None:reply['reason']='native_normal_reference_unobserved';return finish()
+        now=time.perf_counter();values=np.asarray(current,np.float32)
+        if values.shape!=(meta['window_length'],len(names)) or not np.isfinite(values).all():raise ValueError('Finite complete native sensor window required')
+        data.validate_context(values,meta)
+        if not standardized:values=((values-np.asarray(meta['mean']))/np.asarray(meta['std'])).astype(np.float32)
+        timings['normalization_ms']=1000*(time.perf_counter()-now)
+        local=SimpleNamespace(**module.__dict__);original=module.numeric_state;states={}
+        def timed_numeric(encoder,a,b):
+            key=b.detach().cpu().numpy().tobytes()
+            if key in states:return states[key]
+            sync(module);t=time.perf_counter();state=original(encoder,a,b);sync(module)
+            timings['encoder_ms']+=1000*(time.perf_counter()-t);states[key]=state;return state
+        local.numeric_state=timed_numeric
+        local_runtime=SimpleNamespace(module=local,encoders=runtime.encoders)
+        head=self.head;decoded={};student_state=None
+        def infer(batch,kinds):
+            nonlocal student_state
+            previous=timings['encoder_ms'];now=time.perf_counter()
+            if self.encoder is None:
+                features,tasks=self.decision._window_features(local_runtime,values,record,step,batch,offset_samples,self.center_batch_size,answer_types=kinds)
+            else:
+                if student_state is None:
+                    sync(module);encoded_start=time.perf_counter()
+                    student_state=self.encoder.encode(data.inputs(values,record).to(module.DEVICE));sync(module)
+                    timings['encoder_ms']+=1000*(time.perf_counter()-encoded_start)
+                chunks=[]
+                for start in range(0,len(batch),self.center_batch_size):
+                    selected=batch[start:start+self.center_batch_size]
+                    ids=torch.tensor([names.index(c) for c in selected],device=module.DEVICE)
+                    tail=boundary_tail(values,record,selected,names,offset_samples,float(meta['cadence_seconds']))
+                    chunks.append(self.encoder.features(student_state,ids,tail,kinds))
+                features=torch.cat(chunks)
+                tasks=[(c,k) for c in batch for k in kinds]
+            features=features.reshape(-1,features.shape[-1])
+            sync(module);timings['fusion_ms']+=1000*(time.perf_counter()-now)-(timings['encoder_ms']-previous)
+            now=time.perf_counter();features=features.to(module.DEVICE)
+            for i,(center,kind) in enumerate(tasks):
+                logits=head(features[i:i+1],kind).clone()
+                if kind!='BOOLEAN':
+                    if not getattr(head,'allowed_'+kind)[1:].any():raise ValueError('Source head has no trained positive answer class')
+                    logits[:,0]=-torch.inf
+                probabilities=logits.softmax(-1)[0].cpu();prediction=int(probabilities.argmax())
+                decoded[(center,kind)]=dict(center_sensor=center,answer_type=kind,prediction=prediction,
+                    answer=fa.ANSWER_CRITERIA[kind][prediction],evaluated=True,status='EVALUATED',
+                    probability_scope='unconditional' if kind=='BOOLEAN' else 'given_BOOLEAN_Yes',
+                    probabilities=dict(zip(fa.ANSWER_CRITERIA[kind],map(float,probabilities))))
+            sync(module);timings['head_ms']+=1000*(time.perf_counter()-now)
+        infer(chosen,('BOOLEAN',))
+        positive=[center for center in chosen if decoded[(center,'BOOLEAN')]['prediction']==1]
+        if positive:infer(positive,('CHOICE','ORDINAL'))
+        answers=[]
+        for center in chosen:
+            for kind in fa.KINDS:
+                answers.append(decoded.get((center,kind),dict(center_sensor=center,answer_type=kind,
+                    prediction=None,answer=None,probabilities=None,evaluated=False,status='NOT_APPLICABLE',
+                    reason='BOOLEAN_No')))
+        reply.update(status='OK',reason=None,answers=answers,reference_count=record['reference_runs'],selected_sensors=len(chosen),run_id=run_id,
+            evaluated_answers=sum(a['evaluated'] for a in answers),conditional_answering=True)
+        return finish()

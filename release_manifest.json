@@ -214,8 +214,33 @@
     },
     {
       "path": "notebooks/README.md",
-      "bytes": 3584,
-      "sha256": "f07a0e32da64537205cba588e8a405778dff800800ce5fb13781862029f49d0a"
+      "bytes": 4009,
+      "sha256": "ef0857fa73d200cf628006a8f5c6317f15a0099e3b8677fa572643aeefbea4d3"
+    },
+    {
+      "path": "notebooks/distilation/01_control48.ipynb",
+      "bytes": 20278,
+      "sha256": "33794b8e01c7cb41cf55b84e6e4129c3eb77c69cf67c91b3c9f627848b7e30ec"
+    },
+    {
+      "path": "notebooks/distilation/02_merged_inference.ipynb",
+      "bytes": 5258,
+      "sha256": "5dc5ab832e95180a3853df10603f582065c3aa18aa123d1335769b7217c3868f"
+    },
+    {
+      "path": "notebooks/distilation/README.md",
+      "bytes": 12813,
+      "sha256": "6914e5aec7d2fc34dee1d98e96adeb4da5f538bd56efc34f5ba743a161de7db3"
+    },
+    {
+      "path": "notebooks/distilation/references/component_distillation.py.txt",
+      "bytes": 23170,
+      "sha256": "78e105365412f0385af3ae69f03d615044bb88ca86c2d74abe6e6c1df8092bd2"
+    },
+    {
+      "path": "notebooks/distilation/references/component_distillation_v7.py.txt",
+      "bytes": 13309,
+      "sha256": "996f3e9e71e037e8e3956807aa7b51471520c3ad1e6395b7d7013fb8acfd071e"
     },
     {
       "path": "notebooks/training/GEVIS_load.ipynb",
@@ -254,8 +279,8 @@
     },
     {
       "path": "pyproject.toml",
-      "bytes": 801,
-      "sha256": "03e5138af9795b6cf70c1e0a98a9ed4838a5623d87941a3501be170277e166b9"
+      "bytes": 832,
+      "sha256": "908fa5dab652a8c9d0c154e46bce5b995341cef55371bd88f587da522553cf2c"
     },
     {
       "path": "scripts/audit_repository.py",
@@ -411,6 +436,51 @@
       "path": "src/heads/cli.py",
       "bytes": 4481,
       "sha256": "917b8bf52c530fe90c4695a549bad598816c095dea918c0b511e225a127d9c21"
+    },
+    {
+      "path": "src/heads/control48_fast.py",
+      "bytes": 19702,
+      "sha256": "4f469470837b740846d4d5585d2098ee18abb70203616bf0830fe103a246f7b5"
+    },
+    {
+      "path": "src/heads/distilation/__init__.py",
+      "bytes": 523,
+      "sha256": "d0c96fe2cee8aa6eb978cbf0b22c8d81325d1aafee1a2103f0e94a5b8f4bb378"
+    },
+    {
+      "path": "src/heads/distilation/data.py",
+      "bytes": 8272,
+      "sha256": "dda4946506a148ca239a856cfed78aa45e582e2c5685d22959968fe6824cc7bd"
+    },
+    {
+      "path": "src/heads/distilation/mapping.py",
+      "bytes": 3338,
+      "sha256": "224f19e46cba12f75b0a7da380b29c7b50ecc6658ead014af461a0396c43bd93"
+    },
+    {
+      "path": "src/heads/distilation/objective.py",
+      "bytes": 4028,
+      "sha256": "ece2e505653ffd80e13fb53629d3079eb41eebd281cbff4d2d2bea6234115399"
+    },
+    {
+      "path": "src/heads/distilation/runtime.py",
+      "bytes": 13116,
+      "sha256": "15f9224d2d8a301e21e45fcb0971155f12f1e30d5f13acaa6c4529da4a3c407e"
+    },
+    {
+      "path": "src/heads/distilation/search.py",
+      "bytes": 4960,
+      "sha256": "8cf6f7a3a2ad39cd2288f921c24cddc44213416a276939b764da37354056b2b6"
+    },
+    {
+      "path": "src/heads/distilation/student.py",
+      "bytes": 5363,
+      "sha256": "5144f5ccf02f8e7f8574dfae4b9a4b374c5ddb7b78b564415132de5e73d81012"
+    },
+    {
+      "path": "src/heads/distilation/study.py",
+      "bytes": 25286,
+      "sha256": "271c2733ed5a7664be0cbb5066ae03256156bf99363ffd58fa8bdda9d2293718"
     },
     {
       "path": "src/heads/runtime.py",
@@ -826,6 +896,16 @@
       "path": "tests/portable/test_core.py",
       "bytes": 2080,
       "sha256": "368f42832c5f689f7efc4b1c66ff8bf7d07d759193327cfd90ee871c902c1a1b"
+    },
+    {
+      "path": "tests/portable/test_distilation.py",
+      "bytes": 24435,
+      "sha256": "b50b1b39d9378a875b817f94b6433b5edd4fdac07b4d507c455f3c7b9a7c9757"
+    },
+    {
+      "path": "tests/portable/test_fast_control48.py",
+      "bytes": 10489,
+      "sha256": "908aaff5b9463eec092133da584d2c0c3c1f39eca63dae34255255ce2a59a4ab"
     },
     {
       "path": "tests/portable/test_release.py",
